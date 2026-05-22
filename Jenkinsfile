@@ -40,7 +40,12 @@ pipeline {
         stage('Trivy FS Scan') {
             steps {
                 bat 'curl -sfL "https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl" -o trivy-html.tpl'
-                bat 'trivy fs --format template --template "@trivy-html.tpl" --output trivy-fs-report.html .'
+                bat '''
+                "C:\\Users\\manis\\AppData\\Local\\Microsoft\\WinGet\\Packages\\AquaSecurity.Trivy_Microsoft.Winget.Source_8wekyb3d8bbwe\\trivy.exe" fs ^
+                --format template ^
+                --template "@trivy-html.tpl" ^
+                --output trivy-fs-report.html .
+                '''
             }
         }
 
@@ -105,10 +110,16 @@ pipeline {
 
         // Stage 10: Scan Docker image for vulnerabilities using Trivy
         stage('Trivy Image Scan') {
-            steps {
-                bat "trivy image --format template --template \"@trivy-html.tpl\" --output trivy-image-report.html ${IMAGE_NAME}:${IMAGE_TAG}"
-            }
-        }
+        steps {
+            bat '''
+            "C:\\Users\\manis\\AppData\\Local\\Microsoft\\WinGet\\Packages\\AquaSecurity.Trivy_Microsoft.Winget.Source_8wekyb3d8bbwe\\trivy.exe" image ^
+            --format template ^
+            --template "@trivy-html.tpl" ^
+            --output trivy-image-report.html ^
+             %IMAGE_NAME%:%IMAGE_TAG%
+        '''
+    }
+    }
 
         // Stage 11: Push Docker image to DockerHub
         stage('Docker Push') {
