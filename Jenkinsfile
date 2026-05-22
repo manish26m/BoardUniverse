@@ -57,7 +57,9 @@ pipeline {
                         "-Dsonar.projectName=BoardUniverse " +
                         "-Dsonar.projectKey=BoardUniverse " +
                         "-Dsonar.java.binaries=target\\classes " +
-                        "-Dsonar.sources=src"
+                        "-Dsonar.sources=src " +
+                        "-Dsonar.junit.reportPaths=target/surefire-reports " +
+                        "-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml"
                 }
             }
         }
@@ -133,8 +135,8 @@ pipeline {
         // Stage 12: Deploy container locally on port 8085
         stage('Deploy') {
             steps {
-                bat 'docker stop boardgame || exit 0'
-                bat 'docker rm boardgame || exit 0'
+                bat 'docker stop boardgame || ver > nul'
+                bat 'docker rm boardgame || ver > nul'
                 bat "docker run -d -p 8085:8080 --name boardgame ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
