@@ -3,12 +3,11 @@
 # Multi-stage build for optimized image size
 # ─────────────────────────────────────────────────
 
-# Stage 1: Build the application using Maven
-FROM maven:3.9.9-eclipse-temurin-17 AS build
+# Stage 1: Build the application using Maven + Java 21
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /app
 
-# Copy pom.xml first so Maven dependencies are cached
-# This avoids re-downloading deps on every build
+# Copy pom.xml first for dependency caching
 COPY pom.xml .
 RUN mvn -B -q -DskipTests dependency:go-offline
 
@@ -16,16 +15,17 @@ RUN mvn -B -q -DskipTests dependency:go-offline
 COPY src ./src
 RUN mvn clean package -DskipTests
 
+
 # ─────────────────────────────────────────────────
 # Stage 2: Lightweight runtime image
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Copy only the built JAR from the build stage
+# Copy built JAR from build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Expose the port the app runs on
+# Expose application port
 EXPOSE 8080
 
-# Start the application
+# Start application
 ENTRYPOINT ["java", "-jar", "app.jar"]
