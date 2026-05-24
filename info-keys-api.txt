@@ -1,1 +1,0 @@
-sonatype->http://localhost:8081/repository/boardgame-releases/
