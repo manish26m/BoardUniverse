@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="fragments/header.html :: html-head(title='DevOps Pipeline Dashboard')"></head>
+
+<body>
+    <nav th:replace="fragments/links :: nav.navigation-links"></nav>
+
+    <main class="container my-5">
+        <div class="text-center mb-5">
+            <h1 class="display-4 font-weight-extrabold mb-3">DevOps CI/CD Control Center</h1>
+            <p class="lead text-muted mx-auto" style="max-width: 700px;">
+                Monitor, analyze, and trigger the BoardUniverse continuous integration and deployment pipeline in real-time.
+            </p>
+            <button id="btn-trigger" class="btn btn-primary mt-3 px-5 py-3 fs-5">
+                <i class="fa-solid fa-play me-2"></i> Trigger Pipeline Simulation
+            </button>
+        </div>
+
+        <!-- DevOps Pipeline Board Grid -->
+        <div class="pipeline-board">
+            <!-- Stage 1 -->
+            <div class="pipeline-node pending" id="node-1">
+                <div class="pipeline-icon-container">
+                    <i class="fa-solid fa-code-branch"></i>
+                </div>
+                <div class="pipeline-node-title">1. Git Checkout</div>
+                <div class="pipeline-node-desc">Pull source from GitHub</div>
+            </div>
+
+            <!-- Stage 2 -->
+            <div class="pipeline-node pending" id="node-2">
+                <div class="pipeline-icon-container">
+                    <i class="fa-solid fa-gears"></i>
+                </div>
+                <div class="pipeline-node-title">2. Compile</div>
+                <div class="pipeline-node-desc">Maven source compilation</div>
+            </div>
+
+            <!-- Stage 3 -->
+            <div class="pipeline-node pending" id="node-3">
+                <div class="pipeline-icon-container">
+                    <i class="fa-solid fa-vial"></i>
+                </div>
+                <div class="pipeline-node-title">3. Test</div>
+                <div class="pipeline-node-desc">JUnit & JaCoCo coverage</div>
+            </div>
+
+            <!-- Stage 4 -->
+            <div class="pipeline-node pending" id="node-4">
+                <div class="pipeline-icon-container">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div class="pipeline-node-title">4. Trivy FS Scan</div>
+                <div class="pipeline-node-desc">Filesystem vulnerability scan</div>
+            </div>
+
+            <!-- Stage 5 -->
+            <div class="pipeline-node pending" id="node-5">
+                <div class="pipeline-icon-container">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i>
+                </div>
+                <div class="pipeline-node-title">5. SonarQube</div>
+                <div class="pipeline-node-desc">Static analysis scanning</div>
+            </div>
+
+            <!-- Stage 6 -->
+            <div class="pipeline-node pending" id="node-6">
+                <div class="pipeline-icon-container">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                </div>
+                <div class="pipeline-node-title">6. Quality Gate</div>
+                <div class="pipeline-node-desc">Verification gate checks</div>
+            </div>
+
+            <!-- Stage 7 -->
+            <div class="pipeline-node pending" id="node-7">
+                <div class="pipeline-icon-container">
+                    <i class="fa-solid fa-box-archive"></i>
+                </div>
+                <div class="pipeline-node-title">7. Build Package</div>
+                <div class="pipeline-node-desc">Compile JAR release file</div>
+            </div>
+
+            <!-- Stage 8 -->
+            <div class="pipeline-node pending" id="node-8">
+                <div class="pipeline-icon-container">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </div>
+                <div class="pipeline-node-title">8. Nexus Publish</div>
+                <div class="pipeline-node-desc">Upload artifact to repository</div>
+            </div>
+
+            <!-- Stage 9 -->
+            <div class="pipeline-node pending" id="node-9">
+                <div class="pipeline-icon-container">
+                    <i class="fa-brands fa-docker"></i>
+                </div>
+                <div class="pipeline-node-title">9. Docker Build</div>
+                <div class="pipeline-node-desc">Package container build</div>
+            </div>
+
+            <!-- Stage 10 -->
+            <div class="pipeline-node pending" id="node-10">
+                <div class="pipeline-icon-container">
+                    <i class="fa-solid fa-shield-virus"></i>
+                </div>
+                <div class="pipeline-node-title">10. Trivy Image Scan</div>
+                <div class="pipeline-node-desc">Scan image for vulnerabilities</div>
+            </div>
+
+            <!-- Stage 11 -->
+            <div class="pipeline-node pending" id="node-11">
+                <div class="pipeline-icon-container">
+                    <i class="fa-solid fa-upload"></i>
+                </div>
+                <div class="pipeline-node-title">11. Docker Push</div>
+                <div class="pipeline-node-desc">Push to DockerHub registry</div>
+            </div>
+
+            <!-- Stage 12 -->
+            <div class="pipeline-node pending" id="node-12">
+                <div class="pipeline-icon-container">
+                    <i class="fa-solid fa-server"></i>
+                </div>
+                <div class="pipeline-node-title">12. Deploy Local</div>
+                <div class="pipeline-node-desc">Start server on port 8085</div>
+            </div>
+
+            <!-- Stage 13 -->
+            <div class="pipeline-node pending" id="node-13">
+                <div class="pipeline-icon-container">
+                    <i class="fa-solid fa-envelope-circle-check"></i>
+                </div>
+                <div class="pipeline-node-title">13. Email Notification</div>
+                <div class="pipeline-node-desc">Send reports to developer</div>
+            </div>
+        </div>
+
+        <!-- Glassmorphic Live Console Terminal -->
+        <div class="terminal-window">
+            <div class="terminal-header">
+                <div class="terminal-buttons">
+                    <span class="terminal-btn close"></span>
+                    <span class="terminal-btn minimize"></span>
+                    <span class="terminal-btn maximize"></span>
+                </div>
+                <span class="terminal-title"><i class="fa-solid fa-terminal me-2"></i>boarduniverse-cicd-console.log</span>
+                <span style="width: 50px;"></span>
+            </div>
+            <div class="terminal-body" id="terminal-body">
+                <div class="terminal-line info-log">[SYSTEM] Console initialized. Ready to trigger pipeline...</div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="fragments/footer.html :: page-footer"></footer>
+
+    <!-- Interactive Simulator Script -->
+    <script>
+        const pipelineLogs = {
+            1: [
+                { type: 'cmd', text: 'git clone https://github.com/manish26m/Boardgame.git .' },
+                { type: 'info', text: 'Cloning into \'.\'...' },
+                { type: 'info', text: 'remote: Enumerating objects: 382, done.' },
+                { type: 'info', text: 'remote: Counting objects: 100% (148/148), done.' },
+                { type: 'info', text: 'Receiving objects: 100% (382/382), 4.12 MiB | 8.44 MiB/s, done.' },
+                { type: 'success', text: 'SUCCESS: Checked out branch \'main\' at commit 5c11f27 - "fix: Java 17 target, CSRF security, Dockerfile hardening"' }
+            ],
+            2: [
+                { type: 'cmd', text: 'mvn compile' },
+                { type: 'info', text: '[INFO] Scanning for projects...' },
+                { type: 'info', text: '[INFO] Building database_service_project 0.0.5' },
+                { type: 'info', text: '[INFO] Compiler target set to Java 17 compatibility' },
+                { type: 'info', text: '[INFO] Compiling 9 source files to D:\\STUDY\\Coding\\Projects\\docker\\BoardUniverse\\target\\classes' },
+                { type: 'success', text: '[INFO] compile completed - 0 errors, 0 warnings' }
+            ],
+            3: [
+                { type: 'cmd', text: 'mvn test' },
+                { type: 'info', text: '[INFO] Running com.javaproject.TestController' },
+                { type: 'success', text: '[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0 - com.javaproject.TestController' },
+                { type: 'info', text: '[INFO] Running com.javaproject.TestDatabase' },
+                { type: 'success', text: '[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0 - com.javaproject.TestDatabase' },
+                { type: 'info', text: '[INFO] Loading JaCoCo execution data...' },
+                { type: 'success', text: '[INFO] JaCoCo coverage analysis complete. Reports built successfully!' }
+            ],
+            4: [
+                { type: 'cmd', text: 'trivy fs --security-checks vuln --severity HIGH,CRITICAL .' },
+                { type: 'info', text: 'Scanning local filesystem for vulnerabilities...' },
+                { type: 'warn', text: 'WARN: Found 2 vulnerable dependencies in pom.xml' },
+                { type: 'info', text: '+----------------------+------------------+----------+-------------------+' },
+                { type: 'info', text: '|      LIBRARY         |  VULNERABILITY   | SEVERITY |   INSTALLED VER   |' },
+                { type: 'info', text: '+----------------------+------------------+----------+-------------------+' },
+                { type: 'info', text: '| org.yaml:snakeyaml   | CVE-2022-1471    | CRITICAL | 1.28              |' },
+                { type: 'info', text: '| org.h2:h2            | CVE-2022-23221   | HIGH     | 1.4.200           |' },
+                { type: 'info', text: '+----------------------+------------------+----------+-------------------+' },
+                { type: 'success', text: 'FS scan completed. High/Critical dependencies recorded.' }
+            ],
+            5: [
+                { type: 'cmd', text: 'sonar-scanner.bat -Dsonar.projectName=BoardUniverse -Dsonar.projectKey=BoardUniverse' },
+                { type: 'info', text: 'INFO: Scanner packaging version: 5.0.1.3006' },
+                { type: 'info', text: 'INFO: Load global settings (done) | Load project settings (done)' },
+                { type: 'info', text: 'INFO: Indexing source code files... (9 files indexed)' },
+                { type: 'info', text: 'INFO: Running analysis sensors...' },
+                { type: 'info', text: 'INFO: Sensor JavaSquidSensor [java] (done)' },
+                { type: 'success', text: 'INFO: Analysis successful. Results uploaded to SonarQube server.' }
+            ],
+            6: [
+                { type: 'info', text: 'Verifying SonarQube Quality Gate Status...' },
+                { type: 'info', text: 'Quality Gate API callback received.' },
+                { type: 'success', text: 'SUCCESS: QUALITY GATE PASSED!' },
+                { type: 'info', text: '-> Coverage: 84.6% (Requires >= 80%)' },
+                { type: 'info', text: '-> Code Smells: 0 (Requires <= 5)' },
+                { type: 'info', text: '-> Security Rating: A' }
+            ],
+            7: [
+                { type: 'cmd', text: 'mvn package -DskipTests=true' },
+                { type: 'info', text: '[INFO] Packaging jar file...' },
+                { type: 'info', text: '[INFO] Building jar: D:\\STUDY\\Coding\\Projects\\docker\\BoardUniverse\\target\\database_service_project-0.0.5.jar' },
+                { type: 'success', text: '[INFO] BUILD SUCCESS - Packaging JAR complete' }
+            ],
+            8: [
+                { type: 'info', text: 'Uploading database_service_project-0.0.5.jar to Nexus repository manager...' },
+                { type: 'info', text: 'Protocol: HTTP | Host: localhost:8081 | Target Repository: boardgame-releases' },
+                { type: 'info', text: 'Uploading: http://localhost:8081/repository/boardgame-releases/com/javaproject/database_service_project/0.0.5/database_service_project-0.0.5.jar' },
+                { type: 'success', text: 'SUCCESS: Upload complete. Artifact status: RELEASED' }
+            ],
+            9: [
+                { type: 'cmd', text: 'docker build -t manish26m/boardgame:latest .' },
+                { type: 'info', text: 'Sending build context to Docker daemon  4.15MB' },
+                { type: 'info', text: 'Step 1/11 : FROM maven:3.9.9-eclipse-temurin-17 AS build' },
+                { type: 'info', text: ' ---> Using cache' },
+                { type: 'info', text: 'Step 5/11 : FROM eclipse-temurin:17-jre-alpine' },
+                { type: 'info', text: ' ---> Running in clean container context' },
+                { type: 'info', text: 'Step 8/11 : COPY --from=build /app/target/*.jar app.jar' },
+                { type: 'info', text: 'Successfully built image manish26m/boardgame:latest' }
+            ],
+            10: [
+                { type: 'cmd', text: 'trivy image manish26m/boardgame:latest' },
+                { type: 'info', text: 'Scanning Docker Image layers for base OS vulnerabilities...' },
+                { type: 'info', text: 'Base OS: alpine (3.19.1)' },
+                { type: 'success', text: 'SUCCESS: Image Scan Complete. 0 Critical vulnerabilities, 1 Low vulnerability found.' }
+            ],
+            11: [
+                { type: 'cmd', text: 'docker push manish26m/boardgame:latest' },
+                { type: 'info', text: 'The push refers to repository [docker.io/manish26m/boardgame]' },
+                { type: 'info', text: 'e5f8fdfad584: Preparing' },
+                { type: 'info', text: 'd748fba81734: Pushed' },
+                { type: 'success', text: 'latest: digest: sha256:88bc27fcfd84d72856238b... size: 948' }
+            ],
+            12: [
+                { type: 'cmd', text: 'docker stop boardgame && docker rm boardgame' },
+                { type: 'info', text: 'Stopping container: boardgame...' },
+                { type: 'info', text: 'Removing container: boardgame...' },
+                { type: 'cmd', text: 'docker run -d -p 8085:8080 --name boardgame manish26m/boardgame:latest' },
+                { type: 'success', text: 'SUCCESS: Container deployed and listening locally on http://localhost:8085' }
+            ],
+            13: [
+                { type: 'info', text: 'Assembling build logs and pipeline scan reports...' },
+                { type: 'info', text: 'Sending pipeline summary email notification to: manish.mishra2605@gmail.com' },
+                { type: 'success', text: 'SUCCESS: Email sent successfully! BoardUniverse Deployment active.' }
+            ]
+        };
+
+        const btnTrigger = document.getElementById('btn-trigger');
+        const terminalBody = document.getElementById('terminal-body');
+
+        // Append line helper
+        function appendTerminalLine(type, text) {
+            const line = document.createElement('div');
+            line.classList.add('terminal-line');
+            if (type === 'cmd') {
+                line.innerHTML = `<span class="cmd-prefix">$</span> ${text}`;
+            } else if (type === 'success') {
+                line.classList.add('success-log');
+                line.innerHTML = `<i class="fa-solid fa-circle-check me-2"></i>${text}`;
+            } else if (type === 'warn') {
+                line.classList.add('warn-log');
+                line.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-2"></i>${text}`;
+            } else if (type === 'error') {
+                line.classList.add('error-log');
+                line.innerHTML = `<i class="fa-solid fa-circle-xmark me-2"></i>${text}`;
+            } else {
+                line.classList.add('info-log');
+                line.innerText = text;
+            }
+            terminalBody.appendChild(line);
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+        }
+
+        // Delay helper
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // Interactive simulation function
+        async function runPipeline() {
+            btnTrigger.disabled = true;
+            btnTrigger.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-2"></i> Pipeline Running...`;
+            
+            terminalBody.innerHTML = '';
+            appendTerminalLine('info', '[CICD SYSTEM] Starting BoardUniverse automated pipeline build...');
+            await sleep(1000);
+
+            // Reset nodes
+            for (let i = 1; i <= 13; i++) {
+                const node = document.getElementById(`node-${i}`);
+                node.className = 'pipeline-node pending';
+            }
+
+            // Loop stages
+            for (let stageId = 1; stageId <= 13; stageId++) {
+                const node = document.getElementById(`node-${stageId}`);
+                
+                // Mark running
+                node.className = 'pipeline-node running';
+                appendTerminalLine('info', `\n[STAGE ${stageId}] Initializing stage...`);
+                await sleep(500);
+
+                // Print logs
+                const logs = pipelineLogs[stageId];
+                for (let log of logs) {
+                    appendTerminalLine(log.type, log.text);
+                    await sleep(400); // realistic typing delay
+                }
+
+                // Complete
+                node.className = 'pipeline-node success';
+                node.querySelector('.pipeline-icon-container').innerHTML = '<i class="fa-solid fa-check"></i>';
+                await sleep(600);
+            }
+
+            appendTerminalLine('success', '\n[BUILD SUCCESS] Pipeline completed in 24 seconds! All systems operational.');
+            btnTrigger.disabled = false;
+            btnTrigger.innerHTML = `<i class="fa-solid fa-circle-check me-2"></i> Re-Trigger Simulation`;
+        }
+
+        btnTrigger.addEventListener('click', runPipeline);
+    </script>
+</body>
+
+</html>

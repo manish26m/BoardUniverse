@@ -1,64 +1,90 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+    xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity5">
 
-<head th:replace="fragments/header.html :: html-head(title='Boardgame Reviews')"></head>
+<head th:replace="fragments/header.html :: html-head(title='BoardUniverse - Reviews')"></head>
 
 <body>
     <nav th:replace="fragments/links :: nav.navigation-links"></nav>
-    <main class="container">
-        <div class="p-4 p-md-5 mb-4 text-center">
-            <h1 th:text="|User Reviews for ${boardgame.name}|">Reviews for the boardgame</h1>
 
-            <div th:unless="${reviews}">
-                <p class="lead">There is no review for the boardgame.</p>
-            </div>
-            <div class="my-3">
-                <table class="table" th:if="${reviews}">
-                    <thead class="thead-dark">
-                        <tr class="bg-dark text-white">
-                            <th scope="col">Reviews</th>
-                            <th scope="col" title="Only the users with [Manager Role] can edit & delete">Edit</th>
-                            <th scope="col" title="Only the users with [Manager Role] can edit & delete">Delete</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="align-middle" th:each="review : ${reviews}">
-                            <td th:text="${review.text}">Review Text</td>
-                            <td>
-                                <a sec:authorize="hasRole('ROLE_MANAGER')" href="#"
-                                    th:href="@{|/${boardgame.id}/reviews/${review.id}|}">Edit</a>
-                                <p sec:authorize="!hasRole('ROLE_MANAGER')" title="Manager Role required"
-                                    class="text-secondary">Edit
-                                </p>
-                            </td>
-                            <td>
-                                <a sec:authorize="hasRole('ROLE_MANAGER')" href="#"
-                                    th:href="@{/deleteReview/}+${review.id}">Delete</a>
-                                <p sec:authorize="!hasRole('ROLE_MANAGER')" title="Manager Role required"
-                                    class="text-secondary">
-                                    Delete</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div sec:authorize="!hasRole('ROLE_MANAGER')" th:if="${reviews}">
-                <p class="lead">** Only the users with manager role can edit/ delete the reviews **</p>
-            </div>
-            <div sec:authorize="!hasRole('ROLE_USER')">
-                <p class="lead">To write reviews, please login <a href="#" th:href="@{/secured}">Here</a></p>
-            </div>
-            <div sec:authorize="hasRole('ROLE_USER')">
-                <p class="lead"><a href="#" th:href="@{/secured/addReview/}+${boardgame.id}">Add a Review!</a></p>
-            </div>
-            <div class="container text-center my-2">
-                <p class="lead">Go back <a href="#" th:href="@{/}">Home</a></p>
+    <main class="container my-5 flex-grow-1">
+        <div class="row justify-content-center">
+            <div class="col-lg-9 col-md-11">
+                <div class="glass-card">
+                    <!-- Title -->
+                    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+                        <div>
+                            <h1 class="mb-1 text-white fs-2" th:text="|User Reviews: ${boardgame.name}|">User Reviews</h1>
+                            <p class="text-muted mb-0">Browse what our board game community thinks of this title.</p>
+                        </div>
+                        <div sec:authorize="hasRole('ROLE_USER')">
+                            <a th:href="@{/secured/addReview/}+${boardgame.id}" class="btn btn-primary">
+                                <i class="fa-solid fa-feather-pointed me-2"></i>Write a Review
+                            </a>
+                        </div>
+                    </div>
+
+                    <hr class="border-secondary mb-4">
+
+                    <!-- Empty state -->
+                    <div th:unless="${reviews}" class="text-center py-5">
+                        <i class="fa-solid fa-comments fs-1 text-muted mb-3 d-block"></i>
+                        <p class="lead text-muted mb-4">Currently, there are no reviews for this board game.</p>
+                        <div sec:authorize="!hasRole('ROLE_USER')">
+                            <a th:href="@{/login}" class="btn btn-outline-info" style="border-color: var(--neon-cyan); color: var(--text-cyan);">
+                                <i class="fa-solid fa-right-to-bracket me-2"></i>Sign In to Write Reviews
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Reviews List Feed -->
+                    <div th:if="${reviews}" class="space-y-4">
+                        <div th:each="review : ${reviews}" class="p-4 rounded mb-4" style="background: rgba(9, 13, 22, 0.4); border: 1px solid var(--border-glass);">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-purple bg-opacity-25 text-purple rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3);">
+                                        <i class="fa-solid fa-quote-left"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-0 text-white fs-6">Anonymous Collector</h5>
+                                        <span class="text-muted fs-7">Community Reviewer</span>
+                                    </div>
+                                </div>
+
+                                <!-- Actions for Managers -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <!-- Edit -->
+                                    <a sec:authorize="hasRole('ROLE_MANAGER')" th:href="@{|/${boardgame.id}/reviews/${review.id}|}" class="btn btn-sm btn-outline-warning text-warning" style="border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.05);">
+                                        <i class="fa-solid fa-pen-to-square me-1"></i>Edit
+                                    </a>
+                                    
+                                    <!-- Delete -->
+                                    <a sec:authorize="hasRole('ROLE_MANAGER')" th:href="@{/deleteReview/}+${review.id}" class="btn btn-sm btn-outline-danger text-danger" style="border-color: rgba(244, 63, 94, 0.3); background: rgba(244, 63, 94, 0.05);">
+                                        <i class="fa-solid fa-trash-can me-1"></i>Delete
+                                    </a>
+
+                                    <!-- Regular user edit alert info -->
+                                    <span sec:authorize="!hasRole('ROLE_MANAGER')" class="text-muted fs-7" title="Manager Role Required"><i class="fa-solid fa-lock me-1"></i>Locked</span>
+                                </div>
+                            </div>
+                            <p class="text-white mb-0" style="line-height: 1.6; font-size: 1.05rem;" th:text="${review.text}">Review Text</p>
+                        </div>
+                    </div>
+
+                    <!-- Roles Warning and Back Link -->
+                    <div class="mt-5 pt-3 border-top border-secondary d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <a th:href="@{|/${boardgame.id}|}" class="btn btn-outline-secondary text-white border-secondary-subtle"><i class="fa-solid fa-arrow-left me-2"></i>Back to Specs</a>
+                        
+                        <div sec:authorize="!hasRole('ROLE_MANAGER')" class="fs-7 text-muted">
+                            <i class="fa-solid fa-circle-info me-2 text-purple"></i>Only users with a <strong>Manager</strong> role can edit/delete reviews.
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
-    <div class="b-example-divider border border-light"></div>
-    <div th:include="fragments/links :: div.bottom-links"></div>
-    <div th:replace="fragments/footer.html :: page-footer"></div>
+
+    <footer th:replace="fragments/footer.html :: page-footer"></footer>
 </body>
 
 </html>

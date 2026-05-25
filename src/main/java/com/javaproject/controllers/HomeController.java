@@ -162,6 +162,11 @@ public class HomeController {
         return "login";
     }
 
+    @GetMapping("/pipeline")
+    public String goToPipeline() {
+        return "pipeline";
+    }
+
     @GetMapping("/permission-denied")
     public String goToDenied() {
         return "error/permission-denied";

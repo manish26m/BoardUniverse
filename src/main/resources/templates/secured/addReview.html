@@ -1,31 +1,80 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="fragments/header.html :: html-head(title='Your boardgame Reviews')"></head>
+<head th:replace="fragments/header.html :: html-head(title='BoardUniverse - Submit Review')"></head>
 
 <body>
     <nav th:replace="fragments/links :: nav.navigation-links"></nav>
-    <main class="container">
-        <div class="p-4 p-md-5 mb-4 text-center">
-            <h1 th:unless="${review.id}" th:text="|Leave a review for ${boardgame.name}|">Leave a review</h1>
-            <h1 th:if="${review.id}" th:text="|Edit reviews for ${boardgame.name}|">Edit reviews</h1>
 
-            <form action="#" th:action="@{/reviewAdded}" method="POST" th:object="${review}">
-                <div th:if="${review.id}">
-                    <input type="hidden" name="id" th:field="*{id}">
+    <main class="container my-5 flex-grow-1">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8">
+                <div class="glass-card">
+                    <!-- Title Header -->
+                    <div class="text-center mb-4">
+                        <i class="fa-solid fa-pen-nib fs-1 text-purple mb-3"></i>
+                        <h1 class="fs-2 text-white mb-2" th:unless="${review.id}" th:text="|Post Feedback|">Post Review</h1>
+                        <h1 class="fs-2 text-white mb-2" th:if="${review.id}" th:text="|Edit Feedback|">Edit Review</h1>
+                        <p class="text-muted" th:text="|Reviewing ${boardgame.name}|">Write honest reviews for this game.</p>
+                    </div>
+
+                    <!-- Client error container -->
+                    <div id="error-review" class="error-container mb-4" style="display:none;"></div>
+
+                    <!-- Form -->
+                    <form action="#" th:action="@{/reviewAdded}" method="POST" th:object="${review}" onsubmit="return verifyReview()">
+                        <!-- ID for Edit -->
+                        <div th:if="${review.id}">
+                            <input type="hidden" name="id" th:field="*{id}">
+                        </div>
+
+                        <!-- Game ID -->
+                        <input type="hidden" name="gameId" th:value="${boardgame.id}">
+
+                        <!-- Textarea -->
+                        <div class="mb-5">
+                            <label for="reviewText" class="form-label text-muted fw-semibold">Your Review Commentary</label>
+                            <textarea name="text" th:field="*{text}" id="reviewText" class="form-control" placeholder="Share your experience, strategy insights, and player recommendations..."></textarea>
+                            <div class="form-text text-muted fs-7 mt-2">Maximum limit: 1024 characters. Review must be unique.</div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary py-3 fs-6">
+                                <i class="fa-solid fa-paper-plane me-2"></i>Submit Review
+                            </button>
+                            <a th:href="@{|/${boardgame.id}/reviews|}" class="btn btn-outline-secondary py-2 border-secondary-subtle text-white">Cancel</a>
+                        </div>
+                    </form>
                 </div>
-                <textarea name="text" th:field="*{text}"></textarea>
-                <input type="hidden" name="gameId" th:value="${boardgame.id}">
-                <br>
-                <input type="submit" value="Submit the review" class="btn btn-primary m-2 pb-2">
-            </form>
-
-            <p class="lead">Go back <a href="#" th:href="@{/}">Home</a></p>
+            </div>
         </div>
     </main>
-    <div class="b-example-divider border border-light"></div>
-    <div th:include="fragments/links :: div.bottom-links"></div>
-    <div th:replace="fragments/footer.html :: page-footer"></div>
+
+    <footer th:replace="fragments/footer.html :: page-footer"></footer>
+
+    <!-- Form Validation Script -->
+    <script>
+        function verifyReview() {
+            const text = document.getElementById('reviewText').value.trim();
+            const errorDiv = document.getElementById('error-review');
+
+            if (!text) {
+                errorDiv.innerText = "❌ Review commentary cannot be left empty.";
+                errorDiv.style.display = "block";
+                return false;
+            }
+
+            if (text.length > 1024) {
+                errorDiv.innerText = "❌ Review exceeds the 1024 character limit.";
+                errorDiv.style.display = "block";
+                return false;
+            }
+
+            errorDiv.style.display = "none";
+            return true;
+        }
+    </script>
 </body>
 
 </html>

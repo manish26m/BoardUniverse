@@ -1,54 +1,120 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org"
-    xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity5" data-bs-theme="light">
+    xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity5">
 
-
-<head th:replace="fragments/header.html :: html-head(title='Boardgame Home')"></head>
+<head th:replace="fragments/header.html :: html-head(title='BoardUniverse Home')"></head>
 
 <body>
     <nav th:replace="fragments/links :: nav.navigation-links"></nav>
 
-    <main class="container">
-        <div class="p-4 p-md-5 mb-4 text-center">
-            <div class="container col-md-6">
-                <h1>Boardgame Lists</h1>
-
-                <div id="error" class="error pt-3">
-                    <div th:if="${userAddedMsg}">
-                        <p th:text="${userAddedMsg}"></p>
+    <main class="container my-5 flex-grow-1">
+        <div class="row g-4">
+            <!-- Left Hero & Games Catalog -->
+            <div class="col-lg-8">
+                <div class="glass-card mb-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <span class="fs-1 me-3">🎲</span>
+                        <div>
+                            <h1 class="mb-1 text-gradient">Games Catalogue</h1>
+                            <p class="text-muted mb-0">Explore our curated universe of premium tabletop board games.</p>
+                        </div>
                     </div>
-                </div>
 
-                <div th:unless="${boardgames.empty}" class="py-3 my-3">
-                    <div class="list-group d-flex flex-wrap justify-content-center" th:each="boardgame : ${boardgames}">
-                        <a href="#" th:href='@{|/${boardgame.id}|}'
-                            class="list-group-item list-group-item-action py-3 my-2">
-                            <h4 th:text="${boardgame.name}">Name</h4>
+                    <!-- Success/Info message -->
+                    <div th:if="${userAddedMsg}" class="alert alert-success border-0 bg-success-subtle text-success p-3 rounded mb-4" id="success-alert">
+                        <i class="fa-solid fa-circle-check me-2"></i>
+                        <span th:text="${userAddedMsg}">User successfully added!</span>
+                    </div>
+
+                    <div th:if="${boardgames.empty}" class="text-center py-5">
+                        <i class="fa-solid fa-folder-open fs-1 text-muted mb-3"></i>
+                        <p class="lead text-muted">Currently, there are no board games in the universe.</p>
+                        <a sec:authorize="hasRole('ROLE_USER') || hasRole('ROLE_MANAGER')" href="#" th:href="@{/secured/addBoardGame}" class="btn btn-primary mt-2">
+                            <i class="fa-solid fa-plus me-1"></i> Add the First Game
                         </a>
                     </div>
+
+                    <div th:unless="${boardgames.empty}" class="py-2">
+                        <div class="list-group">
+                            <a th:each="boardgame : ${boardgames}" th:href="@{|/${boardgame.id}|}" class="game-list-item text-decoration-none">
+                                <div>
+                                    <h4 class="mb-1 text-white" th:text="${boardgame.name}">Splendor</h4>
+                                    <span class="text-muted fs-6" th:text="${boardgame.gameType}">Strategy Game</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="game-badge" th:text="|Level ${boardgame.level}|">Level 3</span>
+                                    <i class="fa-solid fa-chevron-right text-muted"></i>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div th:if="${boardgames.empty}">
-                <p>Currently there is no boardgame database exists.</p>
-            </div>
+            <!-- Right Sidebar Panel -->
+            <div class="col-lg-4">
+                <!-- User Account Status -->
+                <div class="glass-card mb-4">
+                    <h3 class="mb-3 text-white fs-4"><i class="fa-solid fa-user-shield me-2 text-cyan"></i>Security Portal</h3>
+                    
+                    <div sec:authorize="!hasRole('ROLE_USER')">
+                        <p class="text-muted mb-4">Login or sign up to post reviews, add board games to the catalogue, and manage content.</p>
+                        <div class="d-grid gap-2">
+                            <a th:href="@{/login}" class="btn btn-primary py-2"><i class="fa-solid fa-right-to-bracket me-2"></i>Sign In</a>
+                            <a th:href="@{/newUser}" class="btn btn-outline-secondary py-2 text-white border-secondary-subtle"><i class="fa-solid fa-user-plus me-2"></i>Create Account</a>
+                        </div>
+                    </div>
 
-            <div sec:authorize="!hasRole('ROLE_USER')">
-                <p class="lead">For more services, login <a href="#" th:href="@{/login}">Here</a></p>
-                <p class="lead">To join to the service, <a href="#" th:href="@{/newUser}">Click</a> here</p>
-            </div>
-            <div sec:authorize="hasRole('ROLE_USER') || hasRole('ROLE_MANAGER')">
-                <p class="lead">Click <a href="#" th:href="@{/secured/addBoardGame}">Here</a> to add a boardgame!</p>
-                <form action="#" th:action="@{/logout}" method="post">
-                    <input type="submit" value="Logout" class="btn btn-primary m-2 pb-2">
-                </form>
+                    <div sec:authorize="hasRole('ROLE_USER') || hasRole('ROLE_MANAGER')">
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <div class="bg-primary bg-opacity-25 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="fa-solid fa-user-astronaut fs-4"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0 text-white" sec:authentication="name">Username</h5>
+                                <span class="text-muted fs-6">
+                                    <span sec:authorize="hasRole('ROLE_MANAGER')" class="text-purple fw-semibold"><i class="fa-solid fa-crown me-1"></i>Manager</span>
+                                    <span sec:authorize="!hasRole('ROLE_MANAGER')"><i class="fa-solid fa-user me-1"></i>Collector</span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <a th:href="@{/secured/addBoardGame}" class="btn btn-primary py-2"><i class="fa-solid fa-plus me-2"></i>Add Board Game</a>
+                            <form action="#" th:action="@{/logout}" method="post" class="d-grid">
+                                <button type="submit" class="btn btn-outline-danger py-2"><i class="fa-solid fa-power-off me-2"></i>Logout</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pipeline Telemetry Widget -->
+                <div class="glass-card">
+                    <h3 class="mb-3 text-white fs-4"><i class="fa-solid fa-chart-line me-2 text-cyan"></i>CI/CD Telemetry</h3>
+                    <p class="text-muted mb-3">Check the automated container deployment pipelines for production changes.</p>
+                    <div class="p-3 rounded mb-4" style="background: rgba(9, 13, 22, 0.4); border: 1px solid var(--border-glass);">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Target Port</span>
+                            <span class="text-cyan fw-bold">8082</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Pipeline Health</span>
+                            <span class="text-success fw-bold"><i class="fa-solid fa-shield-heart me-1"></i> Passing</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Docker Registry</span>
+                            <span class="text-muted fs-6">manish26m/boardgame</span>
+                        </div>
+                    </div>
+                    <a th:href="@{/pipeline}" class="btn btn-outline-info w-100 py-2" style="border-color: var(--neon-cyan); color: var(--text-cyan);">
+                        <i class="fa-solid fa-gauge me-2"></i>Dashboard Console
+                    </a>
+                </div>
             </div>
         </div>
     </main>
-    <div class="b-example-divider border border-light"></div>
 
-    <div th:include="fragments/links :: div.bottom-links"></div>
-    <div th:replace="fragments/footer.html :: page-footer"></div>
+    <footer th:replace="fragments/footer.html :: page-footer"></footer>
 </body>
 
 </html>

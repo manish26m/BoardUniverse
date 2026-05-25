@@ -7,9 +7,9 @@
 </head>
 
 <body>
-    <nav class="navigation-links navbar navbar-expand-lg navbar-dark bg-dark p-3">
-        <div class="container-fluid">
-            <a class="navbar-brand fs-5" href="/">Welcome to BoardGame Database!😎</a>
+    <nav class="navigation-links navbar navbar-expand-lg navbar-dark p-3">
+        <div class="container-fluid container">
+            <a class="navbar-brand" href="/"><i class="fa-solid fa-dice-d20 me-2"></i>BoardUniverse 🎲</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                 data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
                 aria-label="Toggle navigation">
@@ -17,16 +17,14 @@
             </button>
 
             <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
-                <ul class="navbar-nav fs-5">
-                    <li class="nav-item"><a href="#" th:href="@{/}" class="nav-link" aria-current="page">Home</a>
-                    </li>
-                    <li sec:authorize="!hasRole('ROLE_USER')" class="nav-item"><a href="#" th:href="@{/login}"
-                            class="nav-link">Login</a></li>
-                    <li sec:authorize="!hasRole('ROLE_USER')" class="nav-item"><a href="#" th:href="@{/newUser}"
-                            class="nav-link">Sign-up</a></li>
+                <ul class="navbar-nav align-items-center">
+                    <li class="nav-item"><a href="#" th:href="@{/}" class="nav-link"><i class="fa-solid fa-house me-1"></i> Home</a></li>
+                    <li class="nav-item"><a href="#" th:href="@{/pipeline}" class="nav-link" style="color: var(--text-cyan) !important; font-weight: 600;"><i class="fa-solid fa-circle-play me-1"></i> DevOps Pipeline</a></li>
+                    <li sec:authorize="!hasRole('ROLE_USER')" class="nav-item"><a href="#" th:href="@{/login}" class="nav-link"><i class="fa-solid fa-right-to-bracket me-1"></i> Login</a></li>
+                    <li sec:authorize="!hasRole('ROLE_USER')" class="nav-item"><a href="#" th:href="@{/newUser}" class="nav-link"><i class="fa-solid fa-user-plus me-1"></i> Sign-up</a></li>
                     <li sec:authorize="hasRole('ROLE_USER')" class="nav-item">
-                        <form action="#" th:action="@{/logout}" method="post">
-                            <input class="nav-link" type="submit" value="Logout">
+                        <form action="#" th:action="@{/logout}" method="post" style="display:inline;">
+                            <button class="btn nav-link" type="submit" style="background:none; border:none; box-shadow:none;"><i class="fa-solid fa-right-from-bracket me-1"></i> Logout</button>
                         </form>
                     </li>
                 </ul>

@@ -1,67 +1,129 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="fragments/header.html :: html-head(title='Add a Board Game')"></head>
+<head th:replace="fragments/header.html :: html-head(title='BoardUniverse - Add Game')"></head>
 
 <body>
     <nav th:replace="fragments/links :: nav.navigation-links"></nav>
-    <main class="container">
-        <div class="p-4 p-md-5 mb-4 text-center">
-            <div class="container col-md-6">
-                <h1>Add your boardgame!</h1>
-                <div class="bg-light border rounded py-3 my-3">
-                    <div id="error-boardgame" class="error-boardgame"></div>
 
-                    <form action="#" th:action="@{/boardgameAdded}" method="POST" th:object="${boardgame}"
-                        onsubmit="return verifyBoardGame()">
-                        Boardgame Name: <input type="text" name="name" th:field="*{name}">
-                        <br><br>
-                        <span
-                            title="1 - very easy, 2 - easy, 3 - medium, 4 - difficult, 5 - very difficult">Difficulty:</span>
-                        <input type="range" name="level" min="1" max="5" step="1" th:field="*{level}" id="myRange"
-                            oninput="this.nextElementSibling.value = this.value">
-                        <output>1</output>
-                        <br><br>
-                        Minimum Players:
-                        <select id="minPlayers" name="minPlayers" th:field="*{minPlayers}">
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                        </select>
-                        <br><br>
-                        Maximum Players:
-                        <select id="maxPlayers" name="maxPlayers" th:field="*{maxPlayers}">
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                            <option value="7">7</option>
-                            <option value="8">8</option>
-                            <option value="9">9</option>
-                            <option value="+">+</option>
-                        </select>
-                        <br><br>
-                        Game Type:
-                        <select id="gameType" name="gameType" th:field="*{gameType}">
-                            <option value="Party Game">Party Game</option>
-                            <option value="Trivia Game">Trivia Game</option>
-                            <option value="Strategy Game">Strategy Game</option>
-                        </select>
-                        <br><br>
-                        <input type="submit" value="Submit the boardgame" class="btn btn-primary m-2 pb-2">
+    <main class="container my-5 flex-grow-1">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8">
+                <div class="glass-card">
+                    <!-- Title -->
+                    <div class="text-center mb-4">
+                        <i class="fa-solid fa-square-plus fs-1 text-purple mb-3"></i>
+                        <h1 class="fs-2 text-white mb-2">Catalogue Registry</h1>
+                        <p class="text-muted">Register a new board game into the BoardUniverse catalogue database.</p>
+                    </div>
+
+                    <!-- Error feedback container -->
+                    <div id="error-boardgame" class="error-container mb-4" style="display:none;"></div>
+
+                    <!-- Form -->
+                    <form action="#" th:action="@{/boardgameAdded}" method="POST" th:object="${boardgame}" onsubmit="return verifyBoardGame()">
+                        <!-- Name -->
+                        <div class="mb-4">
+                            <label for="name" class="form-label text-muted fw-semibold">Board Game Name</label>
+                            <input type="text" name="name" th:field="*{name}" id="name" class="form-control" placeholder="Enter board game title (e.g. Splendor)">
+                        </div>
+
+                        <!-- Difficulty Complexity slider -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between">
+                                <label for="level" class="form-label text-muted fw-semibold" title="1 - Easy | 5 - Expert">Complexity / Level</label>
+                                <span class="badge bg-purple px-2 py-1"><span id="level-display">1</span> / 5</span>
+                            </div>
+                            <input type="range" name="level" min="1" max="5" step="1" th:field="*{level}" id="myRange" class="form-range" style="accent-color: var(--neon-purple);" oninput="document.getElementById('level-display').innerText = this.value">
+                        </div>
+
+                        <!-- Players limits -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-6">
+                                <label for="minPlayers" class="form-label text-muted fw-semibold">Min Players</label>
+                                <select id="minPlayers" name="minPlayers" th:field="*{minPlayers}" class="form-select">
+                                    <option value="1">1 Player</option>
+                                    <option value="2">2 Players</option>
+                                    <option value="3">3 Players</option>
+                                    <option value="4">4 Players</option>
+                                    <option value="5">5 Players</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label for="maxPlayers" class="form-label text-muted fw-semibold">Max Players</label>
+                                <select id="maxPlayers" name="maxPlayers" th:field="*{maxPlayers}" class="form-select">
+                                    <option value="1">1 Player</option>
+                                    <option value="2">2 Players</option>
+                                    <option value="3">3 Players</option>
+                                    <option value="4">4 Players</option>
+                                    <option value="5">5 Players</option>
+                                    <option value="6">6 Players</option>
+                                    <option value="7">7 Players</option>
+                                    <option value="8">8 Players</option>
+                                    <option value="9">9 Players</option>
+                                    <option value="+">+</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Game Type -->
+                        <div class="mb-5">
+                            <label for="gameType" class="form-label text-muted fw-semibold">Game Category</label>
+                            <select id="gameType" name="gameType" th:field="*{gameType}" class="form-select">
+                                <option value="Party Game">Party Game</option>
+                                <option value="Trivia Game">Trivia Game</option>
+                                <option value="Strategy Game">Strategy Game</option>
+                            </select>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary py-3 fs-6">
+                                <i class="fa-solid fa-cloud-arrow-up me-2"></i>Register Game
+                            </button>
+                            <a href="/" class="btn btn-outline-secondary py-2 border-secondary-subtle text-white">Cancel</a>
+                        </div>
                     </form>
                 </div>
-                <p class="lead">Go back <a href="#" th:href="@{/}">Home</a></p>
             </div>
         </div>
     </main>
-    <div class="b-example-divider border border-light"></div>
-    <div th:include="fragments/links :: div.bottom-links"></div>
-    <div th:replace="fragments/footer.html :: page-footer"></div>
+
+    <footer th:replace="fragments/footer.html :: page-footer"></footer>
+
+    <!-- Form Validation Script -->
+    <script>
+        function verifyBoardGame() {
+            const name = document.getElementById('name').value.trim();
+            const minP = parseInt(document.getElementById('minPlayers').value);
+            const maxPVal = document.getElementById('maxPlayers').value;
+            const errorDiv = document.getElementById('error-boardgame');
+
+            if (!name) {
+                errorDiv.innerText = "❌ Board game name is required.";
+                errorDiv.style.display = "block";
+                return false;
+            }
+
+            if (maxPVal !== '+') {
+                const maxP = parseInt(maxPVal);
+                if (minP > maxP) {
+                    errorDiv.innerText = "❌ Minimum players cannot exceed maximum players.";
+                    errorDiv.style.display = "block";
+                    return false;
+                }
+            }
+
+            errorDiv.style.display = "none";
+            return true;
+        }
+
+        // Initialize display value
+        document.addEventListener("DOMContentLoaded", () => {
+            const rangeInput = document.getElementById('myRange');
+            document.getElementById('level-display').innerText = rangeInput.value;
+        });
+    </script>
 </body>
 
 </html>
