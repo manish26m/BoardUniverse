@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=1280"/>
+  <title>BoardUniverse — DevOps CI/CD Pipeline Presentation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    /* ══════════════════════════════════════════════════
+       DESIGN TOKENS
+       ══════════════════════════════════════════════════ */
+    :root {
+      --bg:#050810; --surface:#0a0f1e; --elevated:rgba(16,22,44,.6);
+      --bdr:rgba(255,255,255,.06); --bdr-glow:rgba(139,92,246,.35);
+      --purple:#a855f7; --cyan:#22d3ee; --green:#10b981; --rose:#f43f5e; --amber:#f59e0b; --blue:#60a5fa;
+      --text:#ffffff; --sub:#c8cfe0; --muted:#7b87a0; --dim:#3d4660;
+      --grad:linear-gradient(135deg,#8b5cf6,#22d3ee);
+      --ease:cubic-bezier(.16,1,.3,1);
+      --heading:'Playfair Display',Georgia,serif;
+      --body:'Inter',system-ui,sans-serif;
+      --mono:'JetBrains Mono',monospace;
+    }
+
+    /* ══════════════════════════════════════════════════
+       RESET & LAYOUT
+       ══════════════════════════════════════════════════ */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var(--body);color:var(--sub)}
+    #app{width:100vw;height:100vh;display:flex;flex-direction:column;background:var(--bg)}
+
+    /* ── TOP BAR ── */
+    #topbar{flex-shrink:0;height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(5,8,16,.96);border-bottom:1px solid var(--bdr)}
+    #topbar .brand{font-family:var(--heading);font-size:.85rem;font-weight:800;color:var(--text);letter-spacing:-.01em}
+    #topbar .meta{font-size:.62rem;color:var(--dim);letter-spacing:.05em;font-family:var(--body)}
+    #topbar .counter{font-size:.72rem;font-family:var(--mono);color:var(--muted);font-weight:500}
+
+    /* ── VIEWPORT ── */
+    #viewport{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    #stage{width:1280px;height:720px;position:relative;transform-origin:center center}
+
+    /* ── SLIDES ── */
+    .slide{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);overflow:hidden;opacity:0;pointer-events:none;transform:translateX(80px) scale(.97);transition:opacity .45s var(--ease),transform .45s var(--ease)}
+    .slide.active{opacity:1;pointer-events:all;transform:none}
+    .slide.exit{opacity:0;pointer-events:none;transform:translateX(-80px) scale(.97)}
+    /* ambient glow */
+    .slide::before{content:'';position:absolute;border-radius:50%;pointer-events:none;width:650px;height:650px;top:-220px;left:-180px;background:radial-gradient(circle,rgba(139,92,246,.06) 0%,transparent 55%)}
+    .slide::after{content:'';position:absolute;border-radius:50%;pointer-events:none;width:500px;height:500px;bottom:-200px;right:-120px;background:radial-gradient(circle,rgba(34,211,238,.045) 0%,transparent 55%)}
+
+    /* ── BOTTOM BAR ── */
+    #bottombar{flex-shrink:0;height:54px;display:flex;align-items:center;justify-content:center;gap:14px;background:rgba(5,8,16,.96);border-top:1px solid var(--bdr)}
+    .navbtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--bdr);background:rgba(255,255,255,.03);color:var(--text);cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+    .navbtn:hover{background:rgba(139,92,246,.15);border-color:var(--purple);color:var(--purple)}
+    #progwrap{flex:1;max-width:480px;height:3px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
+    #progbar{height:100%;background:var(--grad);border-radius:99px;transition:width .35s var(--ease)}
+    #dots{display:flex;gap:5px}
+    .dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.12);cursor:pointer;transition:all .25s}
+    .dot.on{background:var(--purple);width:20px;border-radius:3px;box-shadow:0 0 10px rgba(168,85,247,.55)}
+    .dot:hover{background:rgba(168,85,247,.35)}
+
+    /* ══════════════════════════════════════════════════
+       TYPOGRAPHY
+       ══════════════════════════════════════════════════ */
+    .tag{font-family:var(--body);font-size:.6rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .tag::before{content:'';width:20px;height:2px;background:var(--grad);border-radius:2px}
+    .title{font-family:var(--heading);font-size:2.5rem;font-weight:800;letter-spacing:-.03em;line-height:1.12;color:var(--text)}
+    .title em{font-style:normal;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .desc{font-size:.88rem;color:var(--sub);line-height:1.65;font-weight:400;max-width:900px}
+
+    /* ══════════════════════════════════════════════════
+       COMPONENTS
+       ══════════════════════════════════════════════════ */
+    .px{padding:48px 80px 32px}
+    .flex{display:flex}.fcol{flex-direction:column}.f1{flex:1}
+    .ic{align-items:center}.is{align-items:flex-start}.jc{justify-content:center}.jb{justify-content:space-between}
+    .gap6{gap:6px}.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}.gap14{gap:14px}.gap16{gap:16px}.gap20{gap:20px}.gap24{gap:24px}
+    .tc{text-align:center}.w100{width:100%}
+    .mt4{margin-top:4px}.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt20{margin-top:20px}.mt24{margin-top:24px}.mt32{margin-top:32px}
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+
+    /* Card */
+    .card{background:var(--elevated);border:1px solid var(--bdr);border-radius:14px;padding:18px 22px;transition:border-color .3s,box-shadow .3s}
+    .card:hover{border-color:var(--bdr-glow);box-shadow:0 0 28px rgba(139,92,246,.1)}
+    .card-title{font-family:var(--heading);font-size:1rem;font-weight:700;color:var(--text);margin-bottom:6px}
+    .card-text{font-size:.78rem;color:var(--muted);line-height:1.6}
+
+    /* Chip */
+    .chip{display:inline-flex;align-items:center;gap:5px;padding:3px 12px;border-radius:99px;font-size:.65rem;font-weight:600;font-family:var(--body)}
+    .cp{background:rgba(168,85,247,.12);color:var(--purple);border:1px solid rgba(168,85,247,.25)}
+    .cc{background:rgba(34,211,238,.12);color:var(--cyan);border:1px solid rgba(34,211,238,.25)}
+    .cg{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25)}
+    .cr{background:rgba(244,63,94,.12);color:var(--rose);border:1px solid rgba(244,63,94,.25)}
+    .ca{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.25)}
+    .cb{background:rgba(96,165,250,.12);color:var(--blue);border:1px solid rgba(96,165,250,.25)}
+
+    /* Code */
+    .code{font-family:var(--mono);background:#030509;border:1px solid var(--bdr);border-radius:10px;padding:14px 18px;font-size:.7rem;line-height:1.75;color:var(--muted)}
+    .kw{color:var(--purple)}.fn{color:var(--cyan)}.str{color:var(--green)}.cm{color:#3d4a60}.num{color:var(--amber)}.op{color:var(--rose)}
+
+    /* Stat box */
+    .stat{text-align:center;padding:16px 12px;border-radius:14px;border:1px solid var(--bdr);background:var(--elevated)}
+    .stat .n{font-family:var(--heading);font-size:2.2rem;font-weight:900;letter-spacing:-.04em;color:var(--text)}
+    .stat .l{font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:4px;font-family:var(--body)}
+
+    /* Analogy box */
+    .analogy{background:rgba(139,92,246,.04);border:1px solid rgba(139,92,246,.15);border-radius:12px;padding:14px 18px;font-size:.76rem;color:var(--sub);line-height:1.6}
+    .analogy .ah{font-size:.55rem;text-transform:uppercase;letter-spacing:.12em;color:var(--purple);font-weight:700;margin-bottom:5px;font-family:var(--body)}
+    .analogy strong{color:var(--text)}
+
+    /* Pipeline nodes */
+    .pbox{flex-shrink:0;text-align:center;padding:10px 8px;border-radius:11px;border:1.5px solid;font-size:.58rem;font-weight:600;line-height:1.35;transition:transform .2s;cursor:default;min-width:80px;font-family:var(--body)}
+    .pbox:hover{transform:translateY(-4px)}
+    .pbox .pi{font-size:.95rem;display:block;margin-bottom:4px}
+    .parr{width:18px;height:2px;background:rgba(255,255,255,.1);flex-shrink:0;position:relative}
+    .parr::after{content:'';position:absolute;right:-2px;top:-3px;border:4px solid transparent;border-left-color:rgba(255,255,255,.15)}
+    .pipe-row{display:flex;align-items:center;gap:0;justify-content:center}
+
+    /* Node colour classes */
+    .n1{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.06);color:var(--amber)}
+    .n2{border-color:rgba(96,165,250,.4);background:rgba(96,165,250,.06);color:var(--blue)}
+    .n3{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.06);color:var(--green)}
+    .n4{border-color:rgba(244,63,94,.4);background:rgba(244,63,94,.06);color:var(--rose)}
+    .n5{border-color:rgba(168,85,247,.4);background:rgba(168,85,247,.06);color:var(--purple)}
+    .n6{border-color:rgba(34,211,238,.4);background:rgba(34,211,238,.06);color:var(--cyan)}
+
+    /* Flow boxes */
+    .fbox{padding:10px 16px;border-radius:11px;border:1.5px solid;text-align:center;font-size:.73rem;font-weight:600;min-width:110px;font-family:var(--body)}
+    .farr{font-size:1rem;color:var(--dim);flex-shrink:0}
+    .flow{display:flex;align-items:center;gap:8px}
+
+    /* Terminal */
+    .terminal{background:#030509;border:1px solid var(--bdr);border-radius:12px;overflow:hidden;flex:1;display:flex;flex-direction:column}
+    .t-head{background:rgba(10,15,30,.95);border-bottom:1px solid var(--bdr);padding:8px 14px;display:flex;align-items:center;justify-content:space-between}
+    .t-dots{display:flex;gap:6px}
+    .t-dot{width:11px;height:11px;border-radius:50%}
+    .t-body{flex:1;padding:14px 18px;font-family:var(--mono);font-size:.68rem;line-height:1.7;color:var(--muted);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(168,85,247,.25) transparent}
+    .tl{margin-bottom:2px}
+    .tl.cmd{color:var(--cyan)}.tl.ok{color:var(--green)}.tl.warn{color:var(--amber)}.tl.info{color:#4a5670}
+
+    /* Sim nodes */
+    .sim-node{text-align:center;padding:10px 6px;border-radius:10px;border:1.5px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);font-size:.56rem;font-weight:600;line-height:1.4;transition:all .4s;min-width:72px;font-family:var(--body)}
+    .sim-node .sni{font-size:.95rem;display:block;margin-bottom:3px}
+    .sim-node.running{border-color:var(--cyan);background:rgba(34,211,238,.08);animation:pulse 1.2s infinite}
+    .sim-node.done{border-color:var(--green);background:rgba(16,185,129,.08);color:var(--green)}
+
+    /* Trigger button */
+    .trig-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border-radius:10px;border:none;cursor:pointer;font-family:var(--body);font-size:.8rem;font-weight:700;background:var(--grad);color:#fff;transition:all .25s;box-shadow:0 0 22px rgba(139,92,246,.3)}
+    .trig-btn:hover{transform:translateY(-2px);box-shadow:0 0 36px rgba(139,92,246,.5)}
+    .trig-btn:disabled{opacity:.5;transform:none;cursor:not-allowed}
+
+    /* Keyboard hint */
+    .hint{position:fixed;bottom:64px;right:20px;font-size:.6rem;color:var(--dim);font-family:var(--mono);display:flex;gap:6px;align-items:center;opacity:.45}
+    .key{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:4px;padding:1px 8px;font-size:.58rem}
+
+    /* ══════════════════════════════════════════════════
+       ANIMATIONS
+       ══════════════════════════════════════════════════ */
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    @keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+    @keyframes pulse{0%,100%{box-shadow:0 0 14px rgba(139,92,246,.18)}50%{box-shadow:0 0 30px rgba(139,92,246,.5)}}
+    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+    .float{animation:float 3.8s ease-in-out infinite}
+    .slide.active .ani{animation:up .5s var(--ease) both}
+    .slide.active .ani:nth-child(1){animation-delay:.06s}
+    .slide.active .ani:nth-child(2){animation-delay:.14s}
+    .slide.active .ani:nth-child(3){animation-delay:.22s}
+    .slide.active .ani:nth-child(4){animation-delay:.3s}
+    .slide.active .ani:nth-child(5){animation-delay:.38s}
+    .slide.active .ani:nth-child(6){animation-delay:.46s}
+    .slide.active .ani:nth-child(7){animation-delay:.54s}
+  </style>
+</head>
+<body>
+<div id="app">
+
+<!-- ═══ TOP BAR ═══ -->
+<div id="topbar">
+  <div class="brand">🎲 BoardUniverse</div>
+  <div class="meta">INT332 · DevOps Virtualization &amp; Configuration Management · LPU · Manish Mishra · 12308512</div>
+  <div class="counter" id="ctr">01 / 15</div>
+</div>
+
+<!-- ═══ VIEWPORT ═══ -->
+<div id="viewport"><div id="stage">
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 01 — COVER
+     ═══════════════════════════════════════════════════ -->
+<div class="slide active" id="s1">
+ <div class="px flex fcol" style="height:100%;justify-content:center;align-items:center;text-align:center">
+  <div style="position:absolute;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.08) 0%,transparent 60%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none"></div>
+  <div class="float" style="font-size:5.5rem;margin-bottom:16px">🎲</div>
+  <div class="ani" style="font-family:var(--heading);font-size:4.2rem;font-weight:900;letter-spacing:-.04em;line-height:1;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent">BoardUniverse</div>
+  <div class="ani" style="font-size:1.1rem;color:var(--sub);margin-top:16px;max-width:720px;line-height:1.7;font-weight:300">
+    A complete <strong style="color:var(--text);font-weight:600">12-stage automated DevOps pipeline</strong> that builds, tests, secures, and deploys a board-game catalogue web application — from code push to live container.
+  </div>
+  <div class="flex gap10 mt24 ani" style="flex-wrap:wrap;justify-content:center">
+    <span class="chip cp">Spring Boot 2.5</span><span class="chip cc">Jenkins Declarative</span><span class="chip cg">Docker Multi-Stage</span><span class="chip ca">Trivy Security</span><span class="chip cb">SonarQube</span><span class="chip cr">Nexus Repository</span>
+  </div>
+  <div class="flex gap24 mt32 ani" style="border-top:1px solid var(--bdr);padding-top:20px">
+    <div class="tc"><div style="font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-family:var(--body)">Student</div><div style="font-family:var(--heading);font-weight:700;color:var(--text);margin-top:4px;font-size:.9rem">Manish Mishra</div></div>
+    <div class="tc"><div style="font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-family:var(--body)">Reg No.</div><div style="font-family:var(--heading);font-weight:700;color:var(--text);margin-top:4px;font-size:.9rem">12308512</div></div>
+    <div class="tc"><div style="font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-family:var(--body)">Course</div><div style="font-family:var(--heading);font-weight:700;color:var(--text);margin-top:4px;font-size:.9rem">INT332 · DevOps</div></div>
+    <div class="tc"><div style="font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-family:var(--body)">University</div><div style="font-family:var(--heading);font-weight:700;color:var(--text);margin-top:4px;font-size:.9rem">LPU, Phagwara</div></div>
+    <div class="tc"><div style="font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-family:var(--body)">Term</div><div style="font-family:var(--heading);font-weight:700;color:var(--text);margin-top:4px;font-size:.9rem">Jan – May 2026</div></div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 02 — WHAT IS BOARDUNIVERSE?
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s2">
+ <div class="px flex fcol" style="height:100%">
+  <div class="tag ani">The Application</div>
+  <div class="title ani">What is <em>BoardUniverse</em>?</div>
+  <div class="desc ani mt8">A Spring Boot web application where users can browse, add, and review tabletop board games. Think of it like an <strong style="color:var(--text)">online library catalogue</strong> — but for board games.</div>
+  <div class="flex gap16 mt20 f1">
+   <div class="f1 flex fcol gap12 ani">
+    <div class="card">
+     <div class="card-title">👤 Guest (No Login)</div>
+     <div class="card-text">Can browse the full list of board games. Cannot add, edit, or review anything. Just a viewer — like a library visitor who can look at shelves but not borrow books.</div>
+    </div>
+    <div class="card">
+     <div class="card-title">🎮 Collector (User Role)</div>
+     <div class="card-text">Logged in as <code style="color:var(--cyan);font-family:var(--mono);font-size:.72rem">bugs / bunny</code>. Can add new board games to the catalogue and write reviews for existing ones. Like a librarian who adds books and writes summaries.</div>
+    </div>
+    <div class="card">
+     <div class="card-title">👑 Manager (Admin Role)</div>
+     <div class="card-text">Logged in as <code style="color:var(--cyan);font-family:var(--mono);font-size:.72rem">daffy / duck</code>. Can do everything the Collector can, plus delete games and moderate reviews. Like the head librarian.</div>
+    </div>
+   </div>
+   <div class="f1 flex fcol gap12 ani">
+    <div class="card" style="flex:1">
+     <div class="card-title">🛠️ Tech Stack</div>
+     <div class="card-text" style="font-size:.74rem;line-height:1.7">
+      <strong style="color:var(--text)">Backend:</strong> Spring Boot 2.5.6 + Java 17<br>
+      <strong style="color:var(--text)">Templates:</strong> Thymeleaf server-side rendering<br>
+      <strong style="color:var(--text)">Security:</strong> Spring Security (role-based login)<br>
+      <strong style="color:var(--text)">Database:</strong> H2 in-memory (auto-creates on start)<br>
+      <strong style="color:var(--text)">Build Tool:</strong> Apache Maven 3<br>
+      <strong style="color:var(--text)">Testing:</strong> JUnit 5 + JaCoCo coverage<br>
+      <strong style="color:var(--text)">ORM:</strong> Spring Data JPA + JDBC
+     </div>
+    </div>
+    <div class="analogy">
+     <div class="ah">🎯 Real-World Analogy</div>
+     Imagine a <strong>restaurant menu app</strong>. Guests can see the menu. Waiters (Collectors) can add new dishes. The chef (Manager) can remove bad dishes. Our app does the same — but for board games.
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 03 — WHY DEVOPS?
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s3">
+ <div class="px flex fcol" style="height:100%">
+  <div class="tag ani">The Problem</div>
+  <div class="title ani">Why do we need <em>DevOps</em>?</div>
+  <div class="desc ani mt8">Without DevOps, every deployment is a manual, error-prone process. DevOps automates the boring, repetitive work so developers can focus on writing code.</div>
+  <div class="flex gap20 mt20 f1">
+   <div class="f1 flex fcol gap14 ani">
+    <div style="font-family:var(--heading);font-size:1.1rem;font-weight:700;color:var(--rose)">❌ Without DevOps</div>
+    <div class="card" style="border-color:rgba(244,63,94,.2)">
+     <div class="card-text">Developer writes code → manually compiles → manually tests → manually builds JAR → manually copies to server → manually runs. <strong style="color:var(--rose)">Takes hours, breaks often.</strong></div>
+    </div>
+    <div class="card" style="border-color:rgba(244,63,94,.2)">
+     <div class="card-text">"It works on my machine" — a developer says while production is down. No security scans, no code quality checks, no consistency.</div>
+    </div>
+    <div class="analogy" style="border-color:rgba(244,63,94,.15);background:rgba(244,63,94,.03)">
+     <div class="ah" style="color:var(--rose)">🏠 Analogy</div>
+     Like building a house <strong>by hand, brick by brick</strong>, with no blueprints. Every time you rebuild, the walls are slightly different.
+    </div>
+   </div>
+   <div class="f1 flex fcol gap14 ani">
+    <div style="font-family:var(--heading);font-size:1.1rem;font-weight:700;color:var(--green)">✅ With DevOps</div>
+    <div class="card" style="border-color:rgba(16,185,129,.2)">
+     <div class="card-text">Developer pushes code → Jenkins <strong style="color:var(--text)">automatically</strong> compiles → tests → scans for bugs → scans for security → builds Docker → deploys. <strong style="color:var(--green)">Takes minutes, never forgets a step.</strong></div>
+    </div>
+    <div class="card" style="border-color:rgba(16,185,129,.2)">
+     <div class="card-text">Every single build goes through the <strong style="color:var(--text)">exact same 12 checkpoints</strong>. Consistent, reliable, and secure — every time.</div>
+    </div>
+    <div class="analogy" style="border-color:rgba(16,185,129,.15);background:rgba(16,185,129,.03)">
+     <div class="ah" style="color:var(--green)">🏭 Analogy</div>
+     Like a <strong>factory assembly line</strong>. Every product goes through the same stations in the same order, and quality inspectors check at every step.
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 04 — PIPELINE OVERVIEW (12 STAGES)
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s4">
+ <div class="px flex fcol" style="height:100%">
+  <div class="tag ani">Pipeline Architecture</div>
+  <div class="title ani">The 12-Stage <em>Conveyor Belt</em></div>
+  <div class="desc ani mt8">Our Jenkins pipeline runs these 12 stages in order. If any stage fails, the pipeline stops and sends an email alert. Think of it as a factory assembly line — each station has one job.</div>
+  <div class="flex fcol gap8 mt16 f1 jc ani">
+   <!-- Row 1: Stages 1-6 -->
+   <div class="pipe-row">
+    <div class="pbox n1"><span class="pi">📥</span>1. Git<br>Checkout</div><div class="parr"></div>
+    <div class="pbox n2"><span class="pi">⚙️</span>2. Compile</div><div class="parr"></div>
+    <div class="pbox n3"><span class="pi">🧪</span>3. Test</div><div class="parr"></div>
+    <div class="pbox n4"><span class="pi">🛡️</span>4. Trivy<br>FS Scan</div><div class="parr"></div>
+    <div class="pbox n5"><span class="pi">🔍</span>5. Sonar<br>Analysis</div><div class="parr"></div>
+    <div class="pbox n6"><span class="pi">✅</span>6. Quality<br>Gate</div>
+   </div>
+   <div style="text-align:center;color:var(--dim);font-size:1.2rem">↓</div>
+   <!-- Row 2: Stages 7-12 -->
+   <div class="pipe-row">
+    <div class="pbox n1"><span class="pi">📦</span>7. Build<br>Package</div><div class="parr"></div>
+    <div class="pbox n2"><span class="pi">☁️</span>8. Nexus<br>Publish</div><div class="parr"></div>
+    <div class="pbox n5"><span class="pi">🐳</span>9. Docker<br>Build</div><div class="parr"></div>
+    <div class="pbox n4"><span class="pi">🔒</span>10. Trivy<br>Image Scan</div><div class="parr"></div>
+    <div class="pbox n6"><span class="pi">🚀</span>11. Docker<br>Push</div><div class="parr"></div>
+    <div class="pbox n3"><span class="pi">🌐</span>12. Deploy</div>
+   </div>
+  </div>
+  <div class="flex gap14 mt16 ani">
+   <div class="stat f1"><div class="n" style="color:var(--amber)">12</div><div class="l">Pipeline Stages</div></div>
+   <div class="stat f1"><div class="n" style="color:var(--cyan)">6</div><div class="l">DevOps Tools</div></div>
+   <div class="stat f1"><div class="n" style="color:var(--green)">2</div><div class="l">Security Scans</div></div>
+   <div class="stat f1"><div class="n" style="color:var(--purple)">1</div><div class="l">Email Notification</div></div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 05 — STAGES 1-3: CODE → COMPILE → TEST
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s5">
+ <div class="px flex fcol" style="height:100%">
+  <div class="tag ani">Stages 1 – 3</div>
+  <div class="title ani"><em>Checkout</em>, Compile &amp; Test</div>
+  <div class="flex gap16 mt16 f1">
+   <div class="f1 flex fcol gap12">
+    <div class="card ani">
+     <div class="card-title">📥 Stage 1: Git Checkout</div>
+     <div class="card-text">Jenkins connects to our GitHub repository and downloads all the latest code. The command <code style="color:var(--cyan);font-family:var(--mono);font-size:.7rem">checkout scm</code> means "pull whatever branch triggered this build".</div>
+     <div class="code mt8"><span class="cm">// Jenkinsfile</span><br><span class="kw">stage</span>(<span class="str">'Git Checkout'</span>) {<br>&nbsp;&nbsp;steps { <span class="fn">checkout scm</span> }<br>}</div>
+    </div>
+    <div class="card ani">
+     <div class="card-title">⚙️ Stage 2: Compile</div>
+     <div class="card-text">Maven reads <code style="color:var(--cyan);font-family:var(--mono);font-size:.7rem">pom.xml</code> (our project recipe), downloads all dependencies (Spring Boot, Thymeleaf, etc.), and compiles <strong style="color:var(--text)">9 Java source files</strong> into bytecode (.class files).</div>
+     <div class="code mt8"><span class="kw">stage</span>(<span class="str">'Compile'</span>) {<br>&nbsp;&nbsp;steps { bat <span class="str">'mvn compile'</span> }<br>}</div>
+    </div>
+   </div>
+   <div class="f1 flex fcol gap12">
+    <div class="card ani">
+     <div class="card-title">🧪 Stage 3: Test</div>
+     <div class="card-text">Runs <strong style="color:var(--text)">JUnit 5 unit tests</strong> to verify the code works correctly. JaCoCo measures <strong style="color:var(--text)">test coverage</strong> — what percentage of our code is actually tested. If any test fails, the entire pipeline stops here.</div>
+     <div class="code mt8"><span class="kw">stage</span>(<span class="str">'Test'</span>) {<br>&nbsp;&nbsp;steps { bat <span class="str">'mvn test'</span> }<br>}<br><span class="cm">// Uses JaCoCo plugin (v0.8.12)</span></div>
+    </div>
+    <div class="analogy ani">
+     <div class="ah">🍳 Kitchen Analogy</div>
+     <strong>Checkout</strong> = getting the recipe from the cookbook.<br>
+     <strong>Compile</strong> = gathering and prepping all ingredients.<br>
+     <strong>Test</strong> = tasting the dish before serving it to check if the flavour is right. If it's bad, you stop and fix it — you don't serve it.
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 06 — STAGES 4-6: SECURITY & QUALITY
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s6">
+ <div class="px flex fcol" style="height:100%">
+  <div class="tag ani">Stages 4 – 6</div>
+  <div class="title ani">Security Scan &amp; <em>Code Quality</em></div>
+  <div class="flex gap16 mt16 f1">
+   <div class="f1 flex fcol gap12">
+    <div class="card ani">
+     <div class="card-title">🛡️ Stage 4: Trivy Filesystem Scan</div>
+     <div class="card-text"><strong style="color:var(--text)">Trivy</strong> is an open-source security scanner by Aqua Security. Here it scans our <strong style="color:var(--text)">project files and dependencies</strong> (pom.xml, JARs) for known vulnerabilities (CVEs). Generates an HTML report: <code style="color:var(--cyan);font-family:var(--mono);font-size:.68rem">trivy-fs-report.html</code></div>
+     <div class="code mt8"><span class="cm">// Actual command from Jenkinsfile</span><br><span class="fn">trivy.exe</span> fs \<br>&nbsp;&nbsp;--format template \<br>&nbsp;&nbsp;--template <span class="str">"@trivy-html.tpl"</span> \<br>&nbsp;&nbsp;--output <span class="str">trivy-fs-report.html</span> .</div>
+    </div>
+    <div class="analogy ani">
+     <div class="ah">🏥 Analogy</div>
+     Trivy is like an <strong>X-ray machine at airport security</strong>. It scans everything inside your suitcase (code) to find anything dangerous (vulnerabilities) before you board the plane (go to production).
+    </div>
+   </div>
+   <div class="f1 flex fcol gap12">
+    <div class="card ani">
+     <div class="card-title">🔍 Stage 5: SonarQube Analysis</div>
+     <div class="card-text"><strong style="color:var(--text)">SonarQube</strong> (running on port <code style="color:var(--cyan);font-family:var(--mono);font-size:.68rem">localhost:9000</code>) performs <strong style="color:var(--text)">static code analysis</strong> — it reads your source code without running it and checks for bugs, code smells, duplications, and security hotspots.</div>
+     <div class="code mt8"><span class="fn">sonar-scanner</span> \<br>&nbsp;&nbsp;-Dsonar.projectName=<span class="str">BoardUniverse</span> \<br>&nbsp;&nbsp;-Dsonar.projectKey=<span class="str">BoardUniverse</span> \<br>&nbsp;&nbsp;-Dsonar.java.binaries=<span class="str">target/classes</span></div>
+    </div>
+    <div class="card ani">
+     <div class="card-title">✅ Stage 6: Quality Gate</div>
+     <div class="card-text">After SonarQube analyses the code, it gives a <strong style="color:var(--text)">pass/fail verdict</strong> called a Quality Gate. Jenkins waits up to <strong style="color:var(--text)">1 hour</strong> for this result. If the code quality is below the threshold, we know before deploying.</div>
+     <div class="code mt8"><span class="fn">waitForQualityGate</span> abortPipeline: <span class="kw">false</span><br><span class="cm">// timeout: 1 hour max wait</span></div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 07 — STAGES 7-8: BUILD & PUBLISH
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s7">
+ <div class="px flex fcol" style="height:100%">
+  <div class="tag ani">Stages 7 – 8</div>
+  <div class="title ani">Package &amp; <em>Publish to Nexus</em></div>
+  <div class="flex gap16 mt16 f1">
+   <div class="f1 flex fcol gap12">
+    <div class="card ani">
+     <div class="card-title">📦 Stage 7: Build Package</div>
+     <div class="card-text">Maven packages our compiled code, resources, and dependencies into a single <strong style="color:var(--text)">executable JAR file</strong>: <code style="color:var(--cyan);font-family:var(--mono);font-size:.68rem">database_service_project-0.0.5.jar</code>. The <code style="color:var(--cyan);font-family:var(--mono);font-size:.68rem">-DskipTests=true</code> flag means "skip tests again, we already ran them in Stage 3."</div>
+     <div class="code mt8"><span class="kw">stage</span>(<span class="str">'Build Package'</span>) {<br>&nbsp;&nbsp;steps { bat <span class="str">'mvn package -DskipTests=true'</span> }<br>}<br><span class="cm">// Output: target/database_service_project-0.0.5.jar</span></div>
+    </div>
+    <div class="analogy ani">
+     <div class="ah">📬 Analogy</div>
+     Stage 7 is like <strong>boxing up a product</strong> (the JAR file). Stage 8 is like <strong>shipping it to a warehouse</strong> (Nexus). Now anyone on the team can go to Nexus and download version 0.0.5 whenever they need it — no need to rebuild.
+    </div>
+   </div>
+   <div class="f1 flex fcol gap12">
+    <div class="card ani" style="flex:1">
+     <div class="card-title">☁️ Stage 8: Publish to Nexus</div>
+     <div class="card-text"><strong style="color:var(--text)">Nexus Repository Manager</strong> (port <code style="color:var(--cyan);font-family:var(--mono);font-size:.68rem">localhost:8081</code>) is a private artifact warehouse. We upload our JAR here so it's versioned and backed up. Even if our code changes, version 0.0.5 is always preserved.</div>
+     <div class="code mt8" style="font-size:.66rem"><span class="fn">nexusArtifactUploader</span>(<br>&nbsp;&nbsp;nexusVersion: <span class="str">'nexus3'</span>,<br>&nbsp;&nbsp;nexusUrl: <span class="str">'localhost:8081'</span>,<br>&nbsp;&nbsp;repository: <span class="str">'boardgame-releases'</span>,<br>&nbsp;&nbsp;groupId: <span class="str">'com.javaproject'</span>,<br>&nbsp;&nbsp;version: <span class="str">'0.0.5'</span>,<br>&nbsp;&nbsp;artifacts: [[<br>&nbsp;&nbsp;&nbsp;&nbsp;artifactId: <span class="str">'database_service_project'</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;file: <span class="str">'target/...0.0.5.jar'</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;type: <span class="str">'jar'</span><br>&nbsp;&nbsp;]]<br>)</div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 08 — STAGES 9-10: DOCKER BUILD & SCAN
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s8">
+ <div class="px flex fcol" style="height:100%">
+  <div class="tag ani">Stages 9 – 10</div>
+  <div class="title ani"><em>Docker</em> Build &amp; Image Scan</div>
+  <div class="flex gap16 mt16 f1">
+   <div class="f1 flex fcol gap12">
+    <div class="card ani">
+     <div class="card-title">🐳 Stage 9: Docker Build</div>
+     <div class="card-text">Docker reads our <strong style="color:var(--text)">Dockerfile</strong> and creates a container image. We use a <strong style="color:var(--text)">multi-stage build</strong> — two stages in one file:</div>
+     <div class="code mt8" style="font-size:.64rem"><span class="cm"># Stage 1: Build (has Maven + full JDK = ~800 MB)</span><br><span class="kw">FROM</span> <span class="fn">maven:3.9.9-eclipse-temurin-17</span> <span class="kw">AS</span> build<br>COPY pom.xml .<br>RUN mvn dependency:go-offline<br>COPY src ./src<br>RUN mvn clean package -DskipTests<br><br><span class="cm"># Stage 2: Run (only JRE Alpine = ~150 MB)</span><br><span class="kw">FROM</span> <span class="fn">eclipse-temurin:17-jre-alpine</span><br>RUN addgroup -S appgroup && adduser -S appuser<br>COPY <span class="kw">--from=</span>build /app/target/*.jar app.jar<br><span class="kw">USER</span> appuser<br><span class="kw">ENTRYPOINT</span> [<span class="str">"java"</span>, <span class="str">"-jar"</span>, <span class="str">"app.jar"</span>]</div>
+    </div>
+   </div>
+   <div class="f1 flex fcol gap12">
+    <div class="card ani">
+     <div class="card-title">🔐 Security Features in the Dockerfile</div>
+     <div class="card-text" style="line-height:1.7">
+      <strong style="color:var(--text)">Multi-stage build:</strong> The final image doesn't contain Maven, source code, or build tools — only the JAR. Smaller image = smaller attack surface.<br><br>
+      <strong style="color:var(--text)">Non-root user:</strong> <code style="color:var(--cyan);font-family:var(--mono);font-size:.68rem">USER appuser</code> means the app runs as a restricted user, not root. Even if someone hacks the container, they have limited permissions.<br><br>
+      <strong style="color:var(--text)">Alpine base:</strong> Uses Alpine Linux (~5 MB) instead of Ubuntu (~70 MB). Fewer packages = fewer potential vulnerabilities.
+     </div>
+    </div>
+    <div class="card ani">
+     <div class="card-title">🔒 Stage 10: Trivy Image Scan</div>
+     <div class="card-text">After building the Docker image, Trivy scans it <strong style="color:var(--text)">again</strong> — this time checking the container layers, OS packages, and runtime libraries. Report: <code style="color:var(--cyan);font-family:var(--mono);font-size:.68rem">trivy-image-report.html</code></div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 09 — STAGES 11-12: PUSH & DEPLOY
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s9">
+ <div class="px flex fcol" style="height:100%">
+  <div class="tag ani">Stages 11 – 12</div>
+  <div class="title ani"><em>Push</em> to DockerHub &amp; Deploy</div>
+  <div class="flex gap16 mt16 f1">
+   <div class="f1 flex fcol gap12">
+    <div class="card ani">
+     <div class="card-title">🚀 Stage 11: Docker Push</div>
+     <div class="card-text">The built image is pushed (uploaded) to <strong style="color:var(--text)">DockerHub</strong> — a public container registry. Our image lives at <code style="color:var(--cyan);font-family:var(--mono);font-size:.68rem">manish26m/boardgame:latest</code>. Anyone can pull and run it.</div>
+     <div class="code mt8"><span class="kw">withDockerRegistry</span>(credentialsId: <span class="str">'docker-cred'</span>) {<br>&nbsp;&nbsp;bat <span class="str">"docker push manish26m/boardgame:latest"</span><br>}</div>
+    </div>
+    <div class="card ani">
+     <div class="card-title">🌐 Stage 12: Deploy</div>
+     <div class="card-text">Jenkins stops and removes the old container (if any), then starts a fresh one from the new image. The app is mapped to <strong style="color:var(--text)">port 8085</strong> on the host machine.</div>
+     <div class="code mt8"><span class="cm">// Stop old, remove old, run new</span><br>bat <span class="str">'docker stop boardgame || ver > nul'</span><br>bat <span class="str">'docker rm boardgame || ver > nul'</span><br>bat <span class="str">"docker run -d -p 8085:8080 \<br>&nbsp;&nbsp;--name boardgame manish26m/boardgame:latest"</span></div>
+    </div>
+   </div>
+   <div class="f1 flex fcol gap12">
+    <div class="card ani" style="flex:1">
+     <div class="card-title">📧 Post-Build: Email Notification</div>
+     <div class="card-text">After all 12 stages (pass or fail), Jenkins sends a detailed <strong style="color:var(--text)">HTML email</strong> to <code style="color:var(--cyan);font-family:var(--mono);font-size:.68rem">manish.mishra2605@gmail.com</code> with build status, duration, and the Trivy scan reports attached.</div>
+     <div class="code mt8" style="font-size:.64rem"><span class="kw">post</span> { <span class="fn">always</span> {<br>&nbsp;&nbsp;<span class="fn">emailext</span>(<br>&nbsp;&nbsp;&nbsp;&nbsp;subject: <span class="str">"[SUCCESS] BoardUniverse - #42"</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;to: <span class="str">'manish.mishra2605@gmail.com'</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;mimeType: <span class="str">'text/html'</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;attachmentsPattern:<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="str">'trivy-fs-report.html,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;trivy-image-report.html'</span><br>&nbsp;&nbsp;)<br>}}</div>
+    </div>
+    <div class="analogy ani">
+     <div class="ah">🏗️ Analogy</div>
+     Stage 11 = <strong>uploading your recipe to a cloud cookbook</strong> (DockerHub). Stage 12 = <strong>cooking and serving the dish</strong> (running the container). The email = sending a <strong>status report to the head chef</strong> saying "dish is ready" or "something went wrong."
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 10 — TOOLS ECOSYSTEM
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s10">
+ <div class="px flex fcol" style="height:100%">
+  <div class="tag ani">Infrastructure</div>
+  <div class="title ani">Tools &amp; <em>Port Mapping</em></div>
+  <div class="desc ani mt8">Every tool in our pipeline runs as a service on a specific port. Here's the complete ecosystem and what each tool does.</div>
+  <div class="g2 mt16 f1 ani">
+   <div class="card">
+    <div class="flex ic gap10" style="margin-bottom:8px">
+     <div style="width:38px;height:38px;border-radius:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);display:flex;align-items:center;justify-content:center;font-size:1.1rem">🔧</div>
+     <div><div class="card-title" style="margin:0">Jenkins</div><div style="font-size:.65rem;color:var(--amber);font-family:var(--mono)">localhost:8080</div></div>
+    </div>
+    <div class="card-text">The <strong style="color:var(--text)">orchestrator</strong>. Reads our Jenkinsfile and executes all 12 stages in order. Uses JDK 21 and Maven 3 tools. Runs on Windows (uses <code style="font-family:var(--mono);color:var(--cyan);font-size:.68rem">bat</code> commands, not <code style="font-family:var(--mono);color:var(--cyan);font-size:.68rem">sh</code>).</div>
+   </div>
+   <div class="card">
+    <div class="flex ic gap10" style="margin-bottom:8px">
+     <div style="width:38px;height:38px;border-radius:10px;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📊</div>
+     <div><div class="card-title" style="margin:0">SonarQube</div><div style="font-size:.65rem;color:var(--blue);font-family:var(--mono)">localhost:9000</div></div>
+    </div>
+    <div class="card-text">Static code analyzer. Runs inside a Docker container (<code style="font-family:var(--mono);color:var(--cyan);font-size:.68rem">sonarqube:lts-community</code>). Checks for bugs, code smells, duplications, and security hotspots. Provides the Quality Gate verdict.</div>
+   </div>
+   <div class="card">
+    <div class="flex ic gap10" style="margin-bottom:8px">
+     <div style="width:38px;height:38px;border-radius:10px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.25);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📦</div>
+     <div><div class="card-title" style="margin:0">Nexus Repository</div><div style="font-size:.65rem;color:var(--purple);font-family:var(--mono)">localhost:8081</div></div>
+    </div>
+    <div class="card-text">Private artifact warehouse. Runs as Docker container (<code style="font-family:var(--mono);color:var(--cyan);font-size:.68rem">sonatype/nexus3</code>). Stores versioned JAR files. Repository name: <code style="font-family:var(--mono);color:var(--cyan);font-size:.68rem">boardgame-releases</code>.</div>
+   </div>
+   <div class="card">
+    <div class="flex ic gap10" style="margin-bottom:8px">
+     <div style="width:38px;height:38px;border-radius:10px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);display:flex;align-items:center;justify-content:center;font-size:1.1rem">🌐</div>
+     <div><div class="card-title" style="margin:0">BoardUniverse App</div><div style="font-size:.65rem;color:var(--green);font-family:var(--mono)">localhost:8085 → 8080</div></div>
+    </div>
+    <div class="card-text">The final deployed application. Runs inside Docker as non-root user. Host port <strong style="color:var(--text)">8085</strong> maps to container port <strong style="color:var(--text)">8080</strong>. Image: <code style="font-family:var(--mono);color:var(--cyan);font-size:.68rem">manish26m/boardgame:latest</code>.</div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 11 — DOCKERFILE DEEP DIVE
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s11">
+ <div class="px flex fcol" style="height:100%">
+  <div class="tag ani">Containerization</div>
+  <div class="title ani">Dockerfile <em>Deep Dive</em></div>
+  <div class="flex gap16 mt16 f1">
+   <div class="f1 ani">
+    <div class="code" style="height:100%;font-size:.66rem;line-height:1.8">
+<span class="cm"># ─── Stage 1: BUILD (heavy, ~800MB) ───</span>
+<span class="kw">FROM</span> <span class="fn">maven:3.9.9-eclipse-temurin-17</span> <span class="kw">AS</span> build
+<span class="kw">WORKDIR</span> /app
+
+<span class="cm"># Copy pom.xml first → Docker caches this layer</span>
+<span class="cm"># If pom.xml didn't change, skip re-downloading</span>
+<span class="kw">COPY</span> pom.xml .
+<span class="kw">RUN</span> mvn -B -q -DskipTests dependency:go-offline
+
+<span class="cm"># Now copy source code and build the JAR</span>
+<span class="kw">COPY</span> src ./src
+<span class="kw">RUN</span> mvn clean package -DskipTests
+
+<span class="cm"># ─── Stage 2: RUN (lightweight, ~150MB) ───</span>
+<span class="kw">FROM</span> <span class="fn">eclipse-temurin:17-jre-alpine</span>
+<span class="kw">WORKDIR</span> /app
+
+<span class="cm"># Create non-root user for security</span>
+<span class="kw">RUN</span> addgroup -S appgroup && adduser -S appuser -G appgroup
+
+<span class="cm"># Copy ONLY the JAR from Stage 1 (not Maven/src)</span>
+<span class="kw">COPY</span> --from=build --chown=appuser:appgroup \
+  /app/target/*.jar app.jar
+
+<span class="kw">EXPOSE</span> <span class="num">8080</span>
+<span class="kw">USER</span> appuser
+<span class="kw">ENTRYPOINT</span> [<span class="str">"java"</span>, <span class="str">"-jar"</span>, <span class="str">"app.jar"</span>]
+    </div>
+   </div>
+   <div class="f1 flex fcol gap12">
+    <div class="card ani">
+     <div class="card-title">🎯 Why Multi-Stage?</div>
+     <div class="card-text">Stage 1 has Maven + full JDK (~800 MB) — only needed for building. The final image only has JRE (~150 MB) — just what's needed to <em>run</em>. <strong style="color:var(--text)">80% smaller</strong> final image.</div>
+    </div>
+    <div class="card ani">
+     <div class="card-title">🔑 Why dependency:go-offline first?</div>
+     <div class="card-text">Docker caches each layer. If <code style="color:var(--cyan);font-family:var(--mono);font-size:.68rem">pom.xml</code> didn't change, Docker skips re-downloading ~50 dependencies. Only the source code layer rebuilds. <strong style="color:var(--text)">Saves 2-3 minutes per build.</strong></div>
+    </div>
+    <div class="card ani">
+     <div class="card-title">👤 Why non-root user?</div>
+     <div class="card-text">If an attacker breaks into the container, they can only do what <code style="color:var(--cyan);font-family:var(--mono);font-size:.68rem">appuser</code> can do — which is very little. They can't install software, modify system files, or access the host machine.</div>
+    </div>
+    <div class="card ani">
+     <div class="card-title">🏔️ Why Alpine?</div>
+     <div class="card-text">Alpine Linux is only ~5 MB. Ubuntu is ~70 MB. Fewer pre-installed packages means <strong style="color:var(--text)">fewer things that can have vulnerabilities</strong>. Less surface area to attack.</div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 12 — KUBERNETES (OPTIONAL DEPLOYMENT)
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s12">
+ <div class="px flex fcol" style="height:100%">
+  <div class="tag ani">Kubernetes</div>
+  <div class="title ani">Container <em>Orchestration</em></div>
+  <div class="desc ani mt8">Our project also includes a Kubernetes manifest (<code style="color:var(--cyan);font-family:var(--mono)">deployment-service.yaml</code>) for production-scale deployment with auto-scaling and load balancing.</div>
+  <div class="flex gap16 mt16 f1">
+   <div class="f1 ani">
+    <div class="code" style="font-size:.66rem;line-height:1.75">
+<span class="kw">apiVersion:</span> apps/v1
+<span class="kw">kind:</span> <span class="fn">Deployment</span>
+<span class="kw">metadata:</span>
+  <span class="kw">name:</span> <span class="str">boardgame-deployment</span>
+<span class="kw">spec:</span>
+  <span class="kw">replicas:</span> <span class="num">2</span>  <span class="cm"># Run 2 copies of the app</span>
+  <span class="kw">selector:</span>
+    <span class="kw">matchLabels:</span>
+      <span class="kw">app:</span> boardgame
+  <span class="kw">template:</span>
+    <span class="kw">spec:</span>
+      <span class="kw">containers:</span>
+        - <span class="kw">name:</span> boardgame
+          <span class="kw">image:</span> <span class="str">manish26m/boardgame:latest</span>
+          <span class="kw">imagePullPolicy:</span> Always
+          <span class="kw">ports:</span>
+            - <span class="kw">containerPort:</span> <span class="num">8080</span>
+<span class="cm">---</span>
+<span class="kw">apiVersion:</span> v1
+<span class="kw">kind:</span> <span class="fn">Service</span>
+<span class="kw">metadata:</span>
+  <span class="kw">name:</span> <span class="str">boardgame-ssvc</span>
+<span class="kw">spec:</span>
+  <span class="kw">type:</span> <span class="fn">LoadBalancer</span>
+  <span class="kw">ports:</span>
+    - <span class="kw">port:</span> <span class="num">80</span>
+      <span class="kw">targetPort:</span> <span class="num">8080</span>
+    </div>
+   </div>
+   <div class="f1 flex fcol gap12">
+    <div class="card ani">
+     <div class="card-title">🔄 Deployment (replicas: 2)</div>
+     <div class="card-text">Tells Kubernetes to run <strong style="color:var(--text)">2 identical copies</strong> of our app. If one crashes, the other keeps serving users while Kubernetes automatically restarts the failed one.</div>
+    </div>
+    <div class="card ani">
+     <div class="card-title">⚖️ Service (LoadBalancer)</div>
+     <div class="card-text">A LoadBalancer Service distributes incoming user traffic <strong style="color:var(--text)">evenly between the 2 replicas</strong>. Users access port 80, which routes to container port 8080 internally.</div>
+    </div>
+    <div class="card ani">
+     <div class="card-title">📥 imagePullPolicy: Always</div>
+     <div class="card-text">Every time a pod restarts, it <strong style="color:var(--text)">always pulls the latest image</strong> from DockerHub. This ensures deployments always use the newest code.</div>
+    </div>
+    <div class="analogy ani">
+     <div class="ah">🍕 Analogy</div>
+     <strong>Deployment</strong> = Having 2 pizza ovens instead of 1. If one breaks, the other keeps baking. <strong>Service</strong> = The counter person who sends orders to whichever oven is free. <strong>LoadBalancer</strong> = Fair distribution of orders.
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 13 — COMPLETE WORKFLOW DIAGRAM
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s13">
+ <div class="px flex fcol" style="height:100%">
+  <div class="tag ani">End-to-End</div>
+  <div class="title ani">Complete <em>Workflow</em></div>
+  <div class="desc ani mt8">From code push to live application — here's how every piece connects together in one picture.</div>
+  <div class="flex fcol gap12 mt16 f1 jc ani">
+   <div class="flow" style="flex-wrap:wrap;justify-content:center;gap:6px">
+    <div class="fbox n1" style="min-width:95px"><span style="display:block;font-size:.85rem;margin-bottom:2px">👨‍💻</span>Developer<br>pushes code</div>
+    <div class="farr">→</div>
+    <div class="fbox n6" style="min-width:95px"><span style="display:block;font-size:.85rem;margin-bottom:2px">📂</span>GitHub<br>Repository</div>
+    <div class="farr">→</div>
+    <div class="fbox n5" style="min-width:95px"><span style="display:block;font-size:.85rem;margin-bottom:2px">🔧</span>Jenkins<br>(:8080)</div>
+    <div class="farr">→</div>
+    <div class="fbox n2" style="min-width:95px"><span style="display:block;font-size:.85rem;margin-bottom:2px">⚙️</span>Maven<br>Build + Test</div>
+    <div class="farr">→</div>
+    <div class="fbox n4" style="min-width:95px"><span style="display:block;font-size:.85rem;margin-bottom:2px">🛡️</span>Trivy<br>FS Scan</div>
+   </div>
+   <div style="text-align:center;color:var(--dim);font-size:1.2rem">↓</div>
+   <div class="flow" style="flex-wrap:wrap;justify-content:center;gap:6px">
+    <div class="fbox n5" style="min-width:95px"><span style="display:block;font-size:.85rem;margin-bottom:2px">📊</span>SonarQube<br>(:9000)</div>
+    <div class="farr">→</div>
+    <div class="fbox n2" style="min-width:95px"><span style="display:block;font-size:.85rem;margin-bottom:2px">📦</span>Nexus<br>(:8081)</div>
+    <div class="farr">→</div>
+    <div class="fbox n6" style="min-width:95px"><span style="display:block;font-size:.85rem;margin-bottom:2px">🐳</span>Docker<br>Build</div>
+    <div class="farr">→</div>
+    <div class="fbox n4" style="min-width:95px"><span style="display:block;font-size:.85rem;margin-bottom:2px">🔒</span>Trivy<br>Image Scan</div>
+    <div class="farr">→</div>
+    <div class="fbox n3" style="min-width:95px"><span style="display:block;font-size:.85rem;margin-bottom:2px">🚀</span>DockerHub<br>Push + Deploy</div>
+   </div>
+   <div style="text-align:center;color:var(--dim);font-size:1.2rem">↓</div>
+   <div class="flex jc gap16">
+    <div class="fbox n3" style="min-width:180px;padding:14px 20px"><span style="display:block;font-size:1.1rem;margin-bottom:4px">🌐</span>Live Application<br><span style="font-size:.6rem;color:var(--muted)">localhost:8085</span></div>
+    <div class="fbox n1" style="min-width:180px;padding:14px 20px"><span style="display:block;font-size:1.1rem;margin-bottom:4px">📧</span>Email Report<br><span style="font-size:.6rem;color:var(--muted)">manish.mishra2605@gmail.com</span></div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 14 — LIVE SIMULATION
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s14">
+ <div class="px flex fcol" style="height:100%">
+  <div class="tag ani">Live Demo</div>
+  <div class="title ani">Pipeline <em>Simulation</em></div>
+  <div class="desc ani mt4">Click the button below to watch the 12-stage pipeline run in real time — each stage lights up as it completes.</div>
+  <div class="flex gap16 mt12 f1 ani">
+   <!-- Left: pipeline nodes -->
+   <div class="flex fcol gap8 f1 jc" id="sim-grid">
+    <div class="flex gap6 jc" style="flex-wrap:wrap">
+     <div class="sim-node" id="sn1"><span class="sni">📥</span>Git Checkout</div>
+     <div class="sim-node" id="sn2"><span class="sni">⚙️</span>Compile</div>
+     <div class="sim-node" id="sn3"><span class="sni">🧪</span>Test</div>
+     <div class="sim-node" id="sn4"><span class="sni">🛡️</span>Trivy FS</div>
+     <div class="sim-node" id="sn5"><span class="sni">🔍</span>SonarQube</div>
+     <div class="sim-node" id="sn6"><span class="sni">✅</span>Quality Gate</div>
+    </div>
+    <div class="flex gap6 jc" style="flex-wrap:wrap">
+     <div class="sim-node" id="sn7"><span class="sni">📦</span>Build Pkg</div>
+     <div class="sim-node" id="sn8"><span class="sni">☁️</span>Nexus</div>
+     <div class="sim-node" id="sn9"><span class="sni">🐳</span>Docker Build</div>
+     <div class="sim-node" id="sn10"><span class="sni">🔒</span>Trivy Image</div>
+     <div class="sim-node" id="sn11"><span class="sni">🚀</span>Push</div>
+     <div class="sim-node" id="sn12"><span class="sni">🌐</span>Deploy</div>
+    </div>
+    <div class="tc mt8"><button class="trig-btn" id="runbtn" onclick="runSim()">▶ Run Pipeline</button></div>
+   </div>
+   <!-- Right: terminal -->
+   <div class="terminal f1" style="max-height:420px">
+    <div class="t-head">
+     <div class="t-dots"><div class="t-dot" style="background:#f43f5e"></div><div class="t-dot" style="background:#f59e0b"></div><div class="t-dot" style="background:#10b981"></div></div>
+     <div style="font-size:.7rem;color:var(--muted);font-family:var(--body)">Jenkins Console Output</div>
+    </div>
+    <div class="t-body" id="term">
+     <div class="tl info">$ Waiting for pipeline trigger...</div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 15 — THANK YOU
+     ═══════════════════════════════════════════════════ -->
+<div class="slide" id="s15">
+ <div class="px flex fcol" style="height:100%;justify-content:center;align-items:center;text-align:center">
+  <div style="position:absolute;width:800px;height:800px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.07) 0%,transparent 55%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none"></div>
+  <div class="float ani" style="font-size:4rem;margin-bottom:16px">🎲</div>
+  <div class="title ani" style="font-size:3.2rem">Thank You</div>
+  <div class="desc ani mt12 tc" style="max-width:640px">This presentation covered how <strong style="color:var(--text)">BoardUniverse</strong> is built, tested, secured, containerized, and deployed — all through a 12-stage Jenkins pipeline with zero manual steps.</div>
+  <div class="flex gap14 mt24 ani">
+   <div class="stat" style="min-width:120px"><div class="n" style="color:var(--amber)">12</div><div class="l">Pipeline Stages</div></div>
+   <div class="stat" style="min-width:120px"><div class="n" style="color:var(--cyan)">6</div><div class="l">DevOps Tools</div></div>
+   <div class="stat" style="min-width:120px"><div class="n" style="color:var(--rose)">2</div><div class="l">Security Scans</div></div>
+   <div class="stat" style="min-width:120px"><div class="n" style="color:var(--green)">2</div><div class="l">Docker Stages</div></div>
+   <div class="stat" style="min-width:120px"><div class="n" style="color:var(--purple)">2</div><div class="l">K8s Replicas</div></div>
+  </div>
+  <div class="flex gap24 mt32 ani" style="border-top:1px solid var(--bdr);padding-top:20px">
+   <div class="tc"><div style="font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em">Presented By</div><div style="font-family:var(--heading);font-weight:700;color:var(--text);margin-top:4px;font-size:1rem">Manish Mishra</div></div>
+   <div class="tc"><div style="font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em">Registration</div><div style="font-family:var(--heading);font-weight:700;color:var(--text);margin-top:4px;font-size:1rem">12308512</div></div>
+   <div class="tc"><div style="font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em">Course</div><div style="font-family:var(--heading);font-weight:700;color:var(--text);margin-top:4px;font-size:1rem">INT332 · DevOps</div></div>
+   <div class="tc"><div style="font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em">University</div><div style="font-family:var(--heading);font-weight:700;color:var(--text);margin-top:4px;font-size:1rem">LPU, Phagwara</div></div>
+  </div>
+  <div class="mt16 ani" style="font-size:.7rem;color:var(--dim)">📧 manish.mishra2605@gmail.com</div>
+ </div>
+</div>
+
+</div></div><!-- end #stage, #viewport -->
+
+<!-- ═══ BOTTOM BAR ═══ -->
+<div id="bottombar">
+  <button class="navbtn" onclick="go(-1)">◀</button>
+  <div id="progwrap"><div id="progbar" style="width:6.67%"></div></div>
+  <div id="dots"></div>
+  <button class="navbtn" onclick="go(1)">▶</button>
+</div>
+
+<div class="hint"><span class="key">←</span><span class="key">→</span> navigate</div>
+
+</div><!-- end #app -->
+
+<script>
+const TOTAL=15;let cur=0;
+const slides=[...document.querySelectorAll('.slide')];
+const ctr=document.getElementById('ctr');
+const progbar=document.getElementById('progbar');
+const dotsC=document.getElementById('dots');
+
+// Create dots
+for(let i=0;i<TOTAL;i++){const d=document.createElement('div');d.className='dot'+(i===0?' on':'');d.onclick=()=>goTo(i);dotsC.appendChild(d)}
+const dots=[...dotsC.children];
+
+function goTo(n){
+  if(n<0||n>=TOTAL||n===cur)return;
+  slides[cur].classList.remove('active');slides[cur].classList.add('exit');
+  setTimeout(()=>slides[cur===n?cur:cur].classList.remove('exit'),500);
+  const prev=cur;cur=n;
+  slides[cur].classList.add('active');
+  slides[prev].classList.remove('active');slides[prev].classList.add('exit');
+  setTimeout(()=>slides[prev].classList.remove('exit'),500);
+  ctr.textContent=String(cur+1).padStart(2,'0')+' / '+TOTAL;
+  progbar.style.width=((cur+1)/TOTAL*100)+'%';
+  dots.forEach((d,i)=>{d.className=i===cur?'dot on':'dot'});
+}
+function go(dir){goTo(cur+dir)}
+
+// Keyboard navigation
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' ')go(1);
+  if(e.key==='ArrowLeft')go(-1);
+});
+
+// Responsive scaling
+function fitStage(){
+  const vp=document.getElementById('viewport');
+  const st=document.getElementById('stage');
+  const sw=vp.clientWidth,sh=vp.clientHeight;
+  const scale=Math.min(sw/1280,sh/720);
+  st.style.transform='scale('+scale+')';
+}
+window.addEventListener('resize',fitStage);fitStage();
+
+// Pipeline simulation
+const simStages=[
+  {id:'sn1',label:'Git Checkout',log:'$ git checkout scm → Cloning from https://github.com/manish26m/BoardUniverse.git',t:800},
+  {id:'sn2',label:'Compile',log:'$ mvn compile → Compiling 9 source files to /target/classes',t:1200},
+  {id:'sn3',label:'Test',log:'$ mvn test → Tests run: 4, Failures: 0, Skipped: 0 ✓',t:1400},
+  {id:'sn4',label:'Trivy FS Scan',log:'$ trivy fs . → Scanning filesystem for CVEs... 0 CRITICAL found ✓',t:1100},
+  {id:'sn5',label:'SonarQube',log:'$ sonar-scanner → Analysis submitted to localhost:9000/dashboard?id=BoardUniverse',t:1500},
+  {id:'sn6',label:'Quality Gate',log:'$ waitForQualityGate → Quality Gate status: PASSED ✓',t:900},
+  {id:'sn7',label:'Build Package',log:'$ mvn package → Building JAR: database_service_project-0.0.5.jar (28 MB)',t:1300},
+  {id:'sn8',label:'Nexus Publish',log:'$ nexusArtifactUploader → Uploaded to localhost:8081/boardgame-releases ✓',t:1000},
+  {id:'sn9',label:'Docker Build',log:'$ docker build -t manish26m/boardgame:latest . → Image built (152 MB)',t:1600},
+  {id:'sn10',label:'Trivy Image',log:'$ trivy image manish26m/boardgame:latest → 0 CRITICAL, 0 HIGH ✓',t:1100},
+  {id:'sn11',label:'Docker Push',log:'$ docker push manish26m/boardgame:latest → Pushed to DockerHub ✓',t:1200},
+  {id:'sn12',label:'Deploy',log:'$ docker run -d -p 8085:8080 --name boardgame → Container running on :8085 ✓',t:900}
+];
+
+let simRunning=false;
+async function runSim(){
+  if(simRunning)return;simRunning=true;
+  const btn=document.getElementById('runbtn');btn.disabled=true;btn.textContent='⏳ Running...';
+  const term=document.getElementById('term');term.innerHTML='';
+  // Reset all nodes
+  simStages.forEach(s=>{const el=document.getElementById(s.id);el.className='sim-node'});
+
+  addLine(term,'$ jenkins pipeline trigger --job BoardUniverse','cmd');
+  addLine(term,'[Pipeline] Starting build #42...','info');
+  await wait(600);
+
+  for(let i=0;i<simStages.length;i++){
+    const s=simStages[i];
+    const el=document.getElementById(s.id);
+    el.className='sim-node running';
+    addLine(term,'','info');
+    addLine(term,'[Stage '+(i+1)+'/12] '+s.label,'cmd');
+    await wait(s.t);
+    addLine(term,s.log,'ok');
+    el.className='sim-node done';
+  }
+  await wait(400);
+  addLine(term,'','info');
+  addLine(term,'═══════════════════════════════════════════════','info');
+  addLine(term,'✅ BUILD SUCCESS — All 12 stages passed','ok');
+  addLine(term,'📧 Email sent to manish.mishra2605@gmail.com','ok');
+  addLine(term,'🌐 App live at http://localhost:8085','ok');
+  addLine(term,'═══════════════════════════════════════════════','info');
+
+  btn.textContent='✓ Complete';
+  setTimeout(()=>{btn.disabled=false;btn.textContent='▶ Run Pipeline';simRunning=false},3000);
+}
+
+function addLine(container,text,cls){
+  const d=document.createElement('div');d.className='tl '+(cls||'');d.textContent=text;
+  container.appendChild(d);container.scrollTop=container.scrollHeight;
+}
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+</script>
+</body>
+</html>

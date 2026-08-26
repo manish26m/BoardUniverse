@@ -76,13 +76,13 @@ public class HomeController {
         return "index";
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public String getBoardgameDetail(@PathVariable Long id, Model model) {
         model.addAttribute("boardgame", da.getBoardGame(id));
         return "boardgame";
     }
 
-    @GetMapping("/{id}/reviews")
+    @GetMapping("/{id:\\d+}/reviews")
     public String getReviews(@PathVariable Long id, Model model) {
         model.addAttribute("boardgame", da.getBoardGame(id));
         model.addAttribute("reviews", da.getReviews(id));
@@ -98,7 +98,7 @@ public class HomeController {
     }
 
     // edit the review
-    @GetMapping("/{gameId}/reviews/{id}")
+    @GetMapping("/{gameId:\\d+}/reviews/{id:\\d+}")
     public String editReview(@PathVariable Long gameId, @PathVariable Long id, Model model) {
         Review review = da.getReview(id);
         model.addAttribute("review", review);

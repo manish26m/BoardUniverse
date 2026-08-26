@@ -1,0 +1,90 @@
+================================================================================
+          BOARDUNIVERSE — AUTOMATED DEVOPS CI/CD PIPELINE INFO CARD
+================================================================================
+
+1. PROJECT METADATA
+--------------------------------------------------------------------------------
+* Project Title    : BoardUniverse — Automated DevOps CI/CD Pipeline for a Spring Boot Application
+* Course Code      : INT332 (DevOps Virtualization & Configuration Management)
+* Course Name      : DevOps Virtualization and Configuration Management
+* Institution      : Lovely Professional University, Phagwara, Punjab
+* School           : School of Computer Science and Engineering
+* Student Name     : Manish Mishra
+* Registration No. : 12308512
+* Project Term     : January – May 2026
+* GitHub Repository: https://github.com/manish26m/BoardUniverse
+* Report File      : BoardUniverse_DevOps_Report.docx (69 KB Word Document)
+
+2. CORE TECH STACK & COMPONENTS
+--------------------------------------------------------------------------------
+* Application Layer: Spring Boot 2.5.6 (Java 17 JRE alpine-temurin packaging)
+* Database Layer   : H2 In-Memory Database (Embedded, transient, schema-seeded)
+* Frontend Template: Thymeleaf, Bootstrap (Glassmorphic Midnight Slate dark styling)
+* Build & Package  : Apache Maven 3.9.16 (Surefire JUnit tests, JaCoCo line coverage)
+* Orchestration    : Jenkins LTS (12-stage declarative pipeline using Groovy)
+* Static Analysis  : SonarQube Community Edition 9.9 LTS
+* Binary Repository: Sonatype Nexus Repository Manager 3 OSS
+* Security Audits  : Aqua Security Trivy (CLI filesystem and Docker image layer scans)
+* Container Engine : Docker Desktop with WSL 2 backend integration
+* Alert System     : Gmail SMTP Integration (Trivy HTML report attachments)
+
+3. LOCAL SERVICES & PORT MAPPINGS
+--------------------------------------------------------------------------------
+* http://localhost:8080   --> Jenkins LTS Automation Server
+* http://localhost:8081   --> Sonatype Nexus Repository Manager
+* http://localhost:8082   --> Developer Port / DevOps Pipeline Simulation Dashboard
+* http://localhost:8085   --> Production App Container (Docker Host Binding)
+* http://localhost:9000   --> SonarQube Community Edition Dashboard
+
+4. PIPELINE ORCHESTRATION STAGES (12 STAGES)
+--------------------------------------------------------------------------------
+1. Git Checkout     : checkout scm (Jenkins Git integration plugin)
+2. Compile          : mvn compile (Validates Java 17 bytecode compilation)
+3. Test             : mvn test (JUnit 5 + Surefire plugin, creates JaCoCo coverage logs)
+4. Trivy FS Scan    : trivy fs --output trivy-fs-report.html (Filesystem dependency CVE check)
+5. SonarQube Scan   : sonar-scanner.bat (Pushes static telemetry metrics to server)
+6. Quality Gate     : waitForQualityGate (Wait for SonarQube webhook callback status)
+7. Build Package    : mvn package -DskipTests=true (Creates database_service_project-0.0.5.jar)
+8. Publish to Nexus : nexusArtifactUploader (Archives JAR with version 0.0.5 in releases repo)
+9. Docker Build     : docker build -t manish26m/boardgame:latest (Multi-stage compilation)
+10. Trivy Image Scan: trivy image --output trivy-image-report.html (Container layer check)
+11. Docker Push     : docker push manish26m/boardgame:latest (Uploads image to DockerHub)
+12. Deploy          : Stops/removes old container, runs new container binding host port 8085
+
+5. SECURE PIPELINE CREDENTIALS (JENKINS CONFIG)
+--------------------------------------------------------------------------------
+Configure these inside Jenkins (Manage Jenkins -> Credentials -> System -> Global):
+* credential-id: 'docker-cred' --> Username/Password for DockerHub (manish26m)
+* credential-id: 'nexus-cred'  --> Username/Password for Sonatype Nexus Manager
+* SonarQube Token: Set up in Jenkins system configurations pointing to http://localhost:9000
+* SMTP Mailer Info: smtp.gmail.com on port 465 (SSL), auth using Gmail App Password
+
+6. LOCAL FOLDER LAYOUT KEYS
+--------------------------------------------------------------------------------
+* pom.xml                  --> Dependencies, Java compilation version, Nexus repo layout
+* Dockerfile               --> Multi-stage compilation build & non-root security container
+* Jenkinsfile              --> Groovy-based declarative execution steps (12 stages)
+* sonar-project.properties --> Scope directories and keys for SonarQube telemetry
+* src/main/resources/      --> application.properties, schema.sql, Thymeleaf views
+* src/test/java/           --> JUnit 5 test classes (TestController, TestDatabase)
+
+7. COMMON RECOVERY & MANAGEMENT COMMANDS
+--------------------------------------------------------------------------------
+* Run Spring Boot App locally (dev port 8082):
+  .\mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments=-Dserver.port=8082
+
+* Package JAR manually (bypassing tests):
+  .\mvnw.cmd clean package -DskipTests=true
+
+* Clean dangling local Docker images:
+  docker image prune -f
+
+* View live app container logs:
+  docker logs boardgame
+
+* Force stop and delete app container:
+  docker stop boardgame && docker rm boardgame
+
+================================================================================
+                  BOARDUNIVERSE — AUTOMATED DEVOPS CI/CD INFO CARD
+================================================================================

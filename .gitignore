@@ -33,3 +33,5 @@ build/
 .vscode/
 jenkins-cli.jar
 
+### Project Docs ###
+project_docs/
